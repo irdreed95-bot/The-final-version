@@ -1,0 +1,1 @@
+import MediaCard from "./MediaCard"; import {Media} from "../lib/tmdb"; export default function MediaRow({title,items}:{title:string;items:Media[]}){return <section className="row"><div className="section-head"><h3>{title}</h3><span>{items.length} عنوان</span></div><div className="cards">{items.map(x=><MediaCard key={x.id+"-"+(x.media_type||"")} item={x}/>)}</div></section>}
