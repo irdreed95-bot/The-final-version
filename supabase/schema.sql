@@ -66,3 +66,25 @@ create policy "admin tickets update" on public.support_tickets for update using 
 
 drop policy if exists "admin chat delete" on public.public_chat_messages;
 create policy "admin chat delete" on public.public_chat_messages for delete using (public.is_current_user_admin());
+
+
+-- Public playback configuration: exposes only the fields needed by the player.
+-- Server URLs can be configured once in the admin panel using:
+-- {tmdbId}, {type}, {season}, {episode}
+create or replace function public.get_public_playback_config()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'server_urls', coalesce(settings_data->'server_urls','[]'::jsonb),
+    'custom_streams', coalesce(settings_data->'custom_streams','[]'::jsonb)
+  )
+  from public.admin_settings
+  where id = 1;
+$$;
+
+revoke all on function public.get_public_playback_config() from public;
+grant execute on function public.get_public_playback_config() to anon, authenticated;
