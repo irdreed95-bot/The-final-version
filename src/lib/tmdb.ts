@@ -39,3 +39,6 @@ export const searchMedia=(q:string)=>get<{results:Media[]}>("/search/multi?langu
 export const movie=(id:number)=>get<Media&{credits?:any;genres?:any[]}>("/movie/"+id+"?language=ar&append_to_response=credits");
 export const series=(id:number)=>get<Media&{credits?:any;seasons?:any[];genres?:any[]}>("/tv/"+id+"?language=ar&append_to_response=credits");
 export const season=(id:number,s:number)=>get<any>("/tv/"+id+"/season/"+s+"?language=ar");
+export type WatchProvider={provider_id:number;provider_name:string;logo_path?:string|null;display_priority?:number};
+export type WatchProviders={results?:Record<string,{link?:string;flatrate?:WatchProvider[];rent?:WatchProvider[];buy?:WatchProvider[];free?:WatchProvider[];ads?:WatchProvider[]}>};
+export const watchProviders=(id:number,type:"movie"|"tv")=>get<WatchProviders>("/"+type+"/"+id+"/watch/providers");
