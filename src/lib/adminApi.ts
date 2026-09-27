@@ -63,3 +63,14 @@ export async function deleteChatMessage(id:string){
   const {error}=await supabase!.from("public_chat_messages").delete().eq("id",id);
   if(error) throw error;
 }
+
+
+export async function getPublicPlaybackConfig(){
+  if(!supabase) return {server_urls:[],custom_streams:[]};
+  const {data,error}=await supabase.rpc("get_public_playback_config");
+  if(error) throw error;
+  return {
+    server_urls:Array.isArray(data?.server_urls)?data.server_urls.filter((x:any)=>typeof x==="string"):[],
+    custom_streams:Array.isArray(data?.custom_streams)?data.custom_streams:[],
+  };
+}
