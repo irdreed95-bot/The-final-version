@@ -20,6 +20,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
   const [speed,setSpeed]=useState(1);
   const [playerError,setPlayerError]=useState("");
 const [failed,setFailed]=useState<number[]>([]);
+  const activeIndex=selected;
 
   useEffect(()=>{
     let alive=true;
