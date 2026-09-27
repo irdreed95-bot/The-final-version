@@ -7,7 +7,7 @@ import {Save,Plus,Trash2,UploadCloud,Settings2,Download,Megaphone,LayoutGrid,Tv,
 
 const tabs=[
   ["general","عام",Settings2],["update","تحديث",Download],["ads","إعلانات",Megaphone],
-  ["categories","الفئات",LayoutGrid],["channels","القنوات",Tv],["streams","سيرفرات مخصصة",Layers],
+  ["categories","الفئات",LayoutGrid],["channels","القنوات",Tv],["streams","سيرفرات مخصصة",Layers],["providers","مدير المصادر",Layers],
   ["servers","سيرفرات التطبيق",Globe],["tickets","تذاكر الدعم",Ticket],["social","التواصل",Share2],["chat","إدارة الدردشة",MessageSquare]
 ] as const;
 
@@ -46,6 +46,22 @@ export default function AdminPage(){
     {tab==="channels"&&<Panel title="قنوات البث التلفزيوني"><button className="primary" onClick={()=>set({tv_channels:[...(settings.tv_channels||[]),{id:Date.now().toString(),name:"قناة جديدة",logo:"",url:"",category:"عام",country:""}]})}><Plus size={16}/> إضافة قناة</button>{(settings.tv_channels||[]).map((c:any,i:number)=><div className="admin-item" key={c.id}><button onClick={()=>set({tv_channels:settings.tv_channels.filter((_:any,j:number)=>j!==i)})}><Trash2 size={15}/></button><Field label="اسم القناة" value={c.name} onChange={(v:string)=>set({tv_channels:settings.tv_channels.map((x:any,j:number)=>j===i?{...x,name:v}:x)})}/><Field label="رابط M3U8" value={c.url} onChange={(v:string)=>set({tv_channels:settings.tv_channels.map((x:any,j:number)=>j===i?{...x,url:v}:x)})}/><Field label="البلد" value={c.country||""} onChange={(v:string)=>set({tv_channels:settings.tv_channels.map((x:any,j:number)=>j===i?{...x,country:v}:x)})}/><Field label="التصنيف" value={c.category||""} onChange={(v:string)=>set({tv_channels:settings.tv_channels.map((x:any,j:number)=>j===i?{...x,category:v}:x)})}/><Field label="رابط الشعار" value={c.logo||""} onChange={(v:string)=>set({tv_channels:settings.tv_channels.map((x:any,j:number)=>j===i?{...x,logo:v}:x)})}/></div>)}</Panel>}
 
     {tab==="streams"&&<Panel title="السيرفرات المخصصة"><button className="primary" onClick={()=>set({custom_streams:[...settings.custom_streams,{id:Date.now().toString(),tmdbId:"",type:"movie",label:"سيرفر جديد",url:"",subtitleUrl:""}]})}><Plus size={16}/> إضافة سيرفر</button>{settings.custom_streams.map((s:any,i:number)=><div className="admin-item" key={s.id}><button onClick={()=>set({custom_streams:settings.custom_streams.filter((_:any,j:number)=>j!==i)})}><Trash2 size={15}/></button><Field label="TMDB ID" value={s.tmdbId} onChange={(v:string)=>set({custom_streams:settings.custom_streams.map((x:any,j:number)=>j===i?{...x,tmdbId:v}:x)})}/><Field label="اسم السيرفر" value={s.label} onChange={(v:string)=>set({custom_streams:settings.custom_streams.map((x:any,j:number)=>j===i?{...x,label:v}:x)})}/><Field label="الرابط / IFrame" value={s.url} onChange={(v:string)=>set({custom_streams:settings.custom_streams.map((x:any,j:number)=>j===i?{...x,url:v}:x)})}/><Field label="رابط الترجمة VTT/SRT" value={s.subtitleUrl||""} onChange={(v:string)=>set({custom_streams:settings.custom_streams.map((x:any,j:number)=>j===i?{...x,subtitleUrl:v}:x)})}/></div>)}</Panel>}
+
+    {tab==="providers"&&<Panel title="مدير مصادر المشاهدة">
+      <p className="hint">أضف هنا فقط مصادر تملكها أو لديك ترخيص لاستخدامها. النظام يرتبها حسب الأولوية ويجرب المصدر التالي تلقائياً إذا فشل المصدر الحالي.</p>
+      <button className="primary" onClick={()=>set({source_providers:[...(settings.source_providers||[]),{id:crypto.randomUUID(),name:"مصدر جديد",urlTemplate:"",type:"both",kind:"iframe",enabled:true,priority:(settings.source_providers||[]).length+1}]})}><Plus size={16}/> إضافة مصدر</button>
+      {(settings.source_providers||[]).sort((a:any,b:any)=>(Number(a.priority)||999)-(Number(b.priority)||999)).map((p:any,i:number)=><div className="admin-item" key={p.id}>
+        <div className="inline-form"><b>الأولوية {i+1}</b><button onClick={()=>set({source_providers:(settings.source_providers||[]).filter((x:any)=>x.id!==p.id)})}><Trash2 size={15}/></button></div>
+        <Field label="اسم المصدر" value={p.name||""} onChange={(v:string)=>set({source_providers:(settings.source_providers||[]).map((x:any)=>x.id===p.id?{...x,name:v}:x)})}/>
+        <Field label="الرابط / القالب" value={p.urlTemplate||""} onChange={(v:string)=>set({source_providers:(settings.source_providers||[]).map((x:any)=>x.id===p.id?{...x,urlTemplate:v}:x)})}/>
+        <div className="inline-form">
+          <label>النوع<select value={p.type||"both"} onChange={e=>set({source_providers:(settings.source_providers||[]).map((x:any)=>x.id===p.id?{...x,type:e.target.value}:x)})}><option value="both">فيلم + مسلسل</option><option value="movie">أفلام</option><option value="tv">مسلسلات</option></select></label>
+          <label>طريقة العرض<select value={p.kind||"iframe"} onChange={e=>set({source_providers:(settings.source_providers||[]).map((x:any)=>x.id===p.id?{...x,kind:e.target.value}:x)})}><option value="iframe">IFrame</option><option value="hls">HLS / M3U8</option><option value="mp4">MP4</option></select></label>
+          <Toggle label="مفعل" value={p.enabled!==false} onChange={(v:boolean)=>set({source_providers:(settings.source_providers||[]).map((x:any)=>x.id===p.id?{...x,enabled:v}:x)})}/>
+        </div>
+        <Field label="الأولوية الرقمية" value={String(p.priority??i+1)} onChange={(v:string)=>set({source_providers:(settings.source_providers||[]).map((x:any)=>x.id===p.id?{...x,priority:Number(v)||i+1}:x)})}/>
+      </div>)}
+    </Panel>}
 
     {tab==="servers"&&<Panel title="سيرفرات التطبيق D1 - D10">{Array.from({length:10}).map((_,i)=><div className="server-row" key={i}><b>D{i+1}</b><input dir="ltr" value={settings.server_urls?.[i]||""} onChange={e=>{const a=[...(settings.server_urls||[])];a[i]=e.target.value;set({server_urls:a})}} placeholder="https://..."/></div>)}</Panel>}
 
