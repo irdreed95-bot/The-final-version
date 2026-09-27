@@ -1,2 +1,26 @@
-import {useEffect,useState} from "react"; import {Link,useParams} from "react-router-dom"; import {img,movie,series,season} from "../lib/tmdb"; import VideoPlayer from "../components/VideoPlayer";
-export default function DetailsPage({kind}:{kind:"movie"|"series"}){const {id}=useParams();const [data,setData]=useState<any>();const [sn,setSn]=useState(1);const [eps,setEps]=useState<any[]>([]);useEffect(()=>{if(id)(kind==="movie"?movie(+id):series(+id)).then(setData).catch(()=>setData(null))},[id,kind]);useEffect(()=>{if(kind==="series"&&id)season(+id,sn).then(x=>setEps(x.episodes||[])).catch(()=>setEps([]))},[id,sn,kind]);if(!data)return <div className="loading">جاري تحميل التفاصيل…</div>;const title=data.title||data.name;const cast=(data.credits?.cast||[]).slice(0,10);return <div className="details"><div className="backdrop" style={{backgroundImage:"linear-gradient(180deg,#08090c00,#08090c),url("+(data.backdrop_path?"https://image.tmdb.org/t/p/original"+data.backdrop_path:"")+")"}}/><div className="detail-body"><img className="detail-poster" src={img(data.poster_path,"w500")}/><div><span className="pill">{kind==="movie"?"فيلم":"مسلسل"}</span><h2>{title}</h2><p>{data.overview||"لا توجد قصة مترجمة حالياً."}</p><div className="meta">★ {(data.vote_average||0).toFixed(1)} · {data.release_date||data.first_air_date||"—"}</div></div></div>{kind==="series"&&<section className="episodes"><div className="section-head"><h3>المواسم والحلقات</h3><select value={sn} onChange={e=>setSn(+e.target.value)}>{(data.seasons||[]).filter((x:any)=>x.season_number>0).map((x:any)=><option key={x.season_number} value={x.season_number}>{x.name}</option>)}</select></div><div className="episode-grid">{eps.map((e:any)=><article key={e.id}><b>{e.episode_number}. {e.name}</b><p>{e.overview||"بدون وصف"}</p><button onClick={()=>document.getElementById("watch")?.scrollIntoView({behavior:"smooth"})}>مشاهدة</button></article>)}</div></section>}<section className="cast"><h3>طاقم العمل</h3><div className="cast-grid">{cast.map((c:any)=><div key={c.id}><img src={img(c.profile_path,"w185")} alt={c.name}/><b>{c.name}</b><small>{c.character}</small></div>)}</div></section><section id="watch" className="watch"><h3>المشغل</h3><VideoPlayer src={data.stream_url||""} poster={img(data.backdrop_path,"w1280")} title={title}/><p className="hint">{data.stream_url?"المصدر المضاف جاهز.":"أضف رابط بث مرخّص من لوحة التحكم حتى يبدأ التشغيل."}</p></section><Link className="back" to="/">← العودة</Link></div>}
+import {useEffect,useState} from "react";
+import {Link,useParams} from "react-router-dom";
+import {img,movie,series,season} from "../lib/tmdb";
+import VideoPlayer from "../components/VideoPlayer";
+
+export default function DetailsPage({kind}:{kind:"movie"|"series"}){
+  const {id}=useParams();
+  const [data,setData]=useState<any>();
+  const [sn,setSn]=useState(1);
+  const [episode,setEpisode]=useState(1);
+  const [eps,setEps]=useState<any[]>([]);
+  useEffect(()=>{if(id)(kind==="movie"?movie(+id):series(+id)).then(setData).catch(()=>setData(null));},[id,kind]);
+  useEffect(()=>{if(kind==="series"&&id)season(+id,sn).then(x=>setEps(x.episodes||[])).catch(()=>setEps([]));},[id,sn,kind]);
+  if(!data)return <div className="loading">جاري تحميل التفاصيل…</div>;
+  const title=data.title||data.name;
+  const cast=(data.credits?.cast||[]).slice(0,10);
+  const seasons=(data.seasons||[]).filter((x:any)=>x.season_number>0);
+  return <div className="details">
+    <div className="backdrop" style={{backgroundImage:"linear-gradient(180deg,#08090c00,#08090c),url("+(data.backdrop_path?"https://image.tmdb.org/t/p/original"+data.backdrop_path:"")+")"}}/>
+    <div className="detail-body"><img className="detail-poster" src={img(data.poster_path,"w500")}/><div><span className="pill">{kind==="movie"?"فيلم":"مسلسل"}</span><h2>{title}</h2><p>{data.overview||"لا توجد قصة مترجمة حالياً."}</p><div className="meta">★ {(data.vote_average||0).toFixed(1)} · {data.release_date||data.first_air_date||"—"}</div></div></div>
+    {kind==="series"&&<section className="episodes"><div className="section-head"><h3>المواسم والحلقات</h3><select value={sn} onChange={e=>{setSn(+e.target.value);setEpisode(1)}}>{seasons.map((x:any)=><option key={x.season_number} value={x.season_number}>{x.name}</option>)}</select></div><div className="episode-grid">{eps.map((e:any)=><article key={e.id} className={episode===e.episode_number?"selected-episode":""}><b>{e.episode_number}. {e.name}</b><p>{e.overview||"بدون وصف"}</p><button onClick={()=>{setEpisode(e.episode_number);document.getElementById("watch")?.scrollIntoView({behavior:"smooth"})}}>مشاهدة</button></article>)}</div></section>}
+    <section className="cast"><h3>طاقم العمل</h3><div className="cast-grid">{cast.map((c:any)=><div key={c.id}><img src={img(c.profile_path,"w185")} alt={c.name}/><b>{c.name}</b><small>{c.character}</small></div>)}</div></section>
+    <section id="watch" className="watch"><h3>المشغل</h3><VideoPlayer tmdbId={Number(id)} type={kind==="series"?"tv":"movie"} season={sn} episode={episode} poster={img(data.backdrop_path,"w1280")} title={title}/><p className="hint">المشغل يقرأ المصادر المهيأة من لوحة الإدارة تلقائياً.</p></section>
+    <Link className="back" to="/">← العودة</Link>
+  </div>
+}
