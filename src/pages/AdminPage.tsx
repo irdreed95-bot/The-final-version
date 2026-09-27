@@ -29,7 +29,7 @@ export default function AdminPage(){
   const upload=async(file:File,cb:(url:string)=>void)=>{const key=import.meta.env.VITE_IMGBB_KEY;if(!key){setError("VITE_IMGBB_KEY غير مهيأ");return}const f=new FormData();f.append("image",file);try{const r=await fetch("https://api.imgbb.com/1/upload?key="+encodeURIComponent(key),{method:"POST",body:f});const d=await r.json();if(d.success)cb(d.data.url);else throw new Error("فشل رفع الصورة")}catch(e:any){setError(e.message||"فشل رفع الصورة")}};
 
   if(loading)return <div className="loading">جاري قراءة بيانات لوحة التحكم من Supabase…</div>;
-  if(error&&!supabase)return <section className="auth"><div><h2>لوحة التحكم</h2><p className="error">{error}</p><Link className="primary" to="/auth">تسجيل الدخول</Link></div></section>;
+  if(error)return <section className="auth"><div><h2>لوحة التحكم</h2><p className="error">{error}</p><Link className="primary" to="/">العودة للرئيسية</Link></div></section>;
   return <section className="admin page">
     <div className="section-head"><div><span className="pill">REAL ADMIN WORKSPACE</span><h2>لوحة التحكم</h2><p className="hint">هذه اللوحة تقرأ وتكتب البيانات الفعلية في Supabase.</p></div><button className="profile-card" onClick={async()=>{await supabase?.auth.signOut();location.reload()}}><LogOut size={16}/> خروج</button></div>
     {error&&<div className="error" style={{marginBottom:15}}>{error}</div>}
