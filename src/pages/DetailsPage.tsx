@@ -8,9 +8,11 @@ export default function DetailsPage({kind}:{kind:"movie"|"series"}){
   const [data,setData]=useState<any>();
   const [sn,setSn]=useState(1);
   const [episode,setEpisode]=useState(1);
-  const [eps,setEps]=useState<any[]>([]);\n  const [providers,setProviders]=useState<any>(null);
+  const [eps,setEps]=useState<any[]>([]);
+const [providers,setProviders]=useState<any>(null);
   useEffect(()=>{if(id)(kind==="movie"?movie(+id):series(+id)).then(setData).catch(()=>setData(null));},[id,kind]);
-  useEffect(()=>{if(kind==="series"&&id)season(+id,sn).then(x=>setEps(x.episodes||[])).catch(()=>setEps([]));},[id,sn,kind]);\n  useEffect(()=>{if(id)watchProviders(+id,kind==="series"?"tv":"movie").then(x=>setProviders(x.results?.IQ||x.results?.AE||x.results?.US||null)).catch(()=>setProviders(null));},[id,kind]);
+  useEffect(()=>{if(kind==="series"&&id)season(+id,sn).then(x=>setEps(x.episodes||[])).catch(()=>setEps([]));},[id,sn,kind]);
+useEffect(()=>{if(id)watchProviders(+id,kind==="series"?"tv":"movie").then(x=>setProviders(x.results?.IQ||x.results?.AE||x.results?.US||null)).catch(()=>setProviders(null));},[id,kind]);
   if(!data)return <div className="loading">جاري تحميل التفاصيل…</div>;
   const title=data.title||data.name;
   const cast=(data.credits?.cast||[]).slice(0,10);
