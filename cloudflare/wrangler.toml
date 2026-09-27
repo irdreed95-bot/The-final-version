@@ -1,0 +1,7 @@
+name = "the-final-version-playback"
+main = "worker.ts"
+compatibility_date = "2026-09-28"
+
+[vars]
+# Keep only URLs you own or are licensed to distribute.
+PLAYBACK_CONFIG = "[]"
