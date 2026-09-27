@@ -2,15 +2,24 @@ const key=import.meta.env.VITE_TMDB_API_KEY as string|undefined;
 const base="https://api.themoviedb.org/3";
 
 async function get<T>(path:string){
-  if(!key?.trim()) throw new Error("TMDB API key is not configured");
-  const sep=path.includes("?")?"&":"?";
-  const r=await fetch(base+path+sep+"api_key="+encodeURIComponent(key.trim())+"&language=ar",{
-    headers:{accept:"application/json"}
-  });
+  const token=key?.trim();
+  if(!token) throw new Error("TMDB API key is not configured");
+
+  const url=new URL(base+path);
+  if(!url.searchParams.has("language")) url.searchParams.set("language","ar");
+
+  const headers:Record<string,string>={accept:"application/json"};
+  if(token.startsWith("eyJ")){
+    headers.Authorization="Bearer "+token;
+  }else{
+    url.searchParams.set("api_key",token);
+  }
+
+  const r=await fetch(url.toString(),{headers});
   if(!r.ok){
     let detail="";
     try{detail=await r.text()}catch{}
-    throw new Error("TMDB request failed ("+r.status+")"+(detail?"":""));
+    throw new Error("TMDB request failed ("+r.status+")"+(detail?" — "+detail.slice(0,180):""));
   }
   return r.json() as Promise<T>;
 }
