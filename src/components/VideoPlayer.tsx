@@ -43,9 +43,6 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
         const custom=(cfg.custom_streams||[])
           .filter((x:any)=>String(x.tmdbId)===String(tmdbId)&&x.type===type&&typeof x.url==="string"&&isHttp(x.url))
           .map((x:any)=>({url:String(x.url),label:x.label||"سيرفر مخصص"}));
-        const configured=(cfg.server_urls||[])
-          .filter((x:string)=>typeof x==="string"&&isHttp(x))
-          .map((x:string)=>({url:expandTemplate(x,tmdbId,type,season,episode),label:"سيرفر"}));
         const providers=(cfg.source_providers||[])
           .filter((p:any)=>p&&p.enabled!==false&&typeof p.urlTemplate==="string"&&(p.type==="both"||p.type===type))
           .sort((a:any,b:any)=>(Number(a.priority)||999)-(Number(b.priority)||999));
@@ -53,7 +50,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
           const url=expandTemplate(p.urlTemplate,tmdbId,type,season,episode);
           if(isHttp(url)) all.push({url,label:p.name||"مصدر",kind:p.kind});
         }
-        all.push(...custom,...configured);
+        all.push(...custom);
       }catch{ if(!all.length) throw new Error("config"); }
       const unique=all.filter((x,i,a)=>x.url&&!a.slice(0,i).some(y=>y.url===x.url));
       if(!alive)return;
