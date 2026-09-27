@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from "react";
 import {Link} from "react-router-dom";
-import {adminApi} from "../lib/adminApi";
+import {adminApi,defaultSettings} from "../lib/adminApi";
 import {supabase} from "../lib/supabase";
 import {Save,Plus,Trash2,UploadCloud,Settings2,Download,Megaphone,LayoutGrid,Tv,Layers,Globe,Ticket,Share2,MessageSquare,RefreshCw,LogOut} from "lucide-react";
 
@@ -14,7 +14,7 @@ const cats=[["28","أكشن / Action"],["35","كوميديا / Comedy"],["18","�
 
 export default function AdminPage(){
   const [tab,setTab]=useState<string>("general"),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false);
-  const [settings,setSettings]=useState<any>(adminApi.defaultSettings),[error,setError]=useState("");
+  const [settings,setSettings]=useState<any>(defaultSettings),[error,setError]=useState("");
   const [tickets,setTickets]=useState<any[]>([]),[messages,setMessages]=useState<any[]>([]),[reply,setReply]=useState<Record<string,string>>({});
   const adRef=useRef<HTMLInputElement>(null);
 
