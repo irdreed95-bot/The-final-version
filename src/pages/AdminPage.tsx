@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from "react";
 import {Link} from "react-router-dom";
-import {adminApi,defaultSettings} from "../lib/adminApi";
+import * as adminApi from "../lib/adminApi";
+import {defaultSettings} from "../lib/adminApi";
 import {supabase} from "../lib/supabase";
 import {Save,Plus,Trash2,UploadCloud,Settings2,Download,Megaphone,LayoutGrid,Tv,Layers,Globe,Ticket,Share2,MessageSquare,RefreshCw,LogOut} from "lucide-react";
 
