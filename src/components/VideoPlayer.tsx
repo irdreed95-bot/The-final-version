@@ -3,7 +3,7 @@ import {getPublicPlaybackConfig} from "../lib/adminApi";
 import Hls from "hls.js";
 
 type Props={tmdbId:number;type:"movie"|"tv";season?:number;episode?:number;poster?:string;title?:string};
-type Source={url:string;label?:string};
+type Source={url:string;label?:string;kind?:"iframe"|"hls"|"mp4"};
 
 function expandTemplate(template:string,tmdbId:number,type:"movie"|"tv",season:number,episode:number){
   return template.replaceAll("{tmdbId}",String(tmdbId)).replaceAll("{type}",type).replaceAll("{season}",String(season)).replaceAll("{episode}",String(episode));
@@ -18,11 +18,11 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
   const [speed,setSpeed]=useState(1);
-  const [playerError,setPlayerError]=useState("");
+  const [playerError,setPlayerError]=useState("");\n  const [failed,setFailed]=useState<number[]>([]);
 
   useEffect(()=>{
     let alive=true;
-    setLoading(true); setError(""); setSelected(0);
+    setLoading(true); setError(""); setSelected(0); setFailed([]);
     const load=async()=>{
       const all:Source[]=[];
       const api=(import.meta.env.VITE_PLAYBACK_API_URL as string|undefined)?.trim();
@@ -34,7 +34,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
           const r=await fetch(u.toString(),{headers:{accept:"application/json"}});
           if(r.ok){
             const d=await r.json();
-            for(const x of Array.isArray(d?.sources)?d.sources:[]) if(typeof x?.url==="string"&&isHttp(x.url)) all.push({url:x.url,label:x.label||"Cloudflare"});
+            for(const x of Array.isArray(d?.sources)?d.sources:[]) if(typeof x?.url==="string"&&isHttp(x.url)) all.push({url:x.url,label:x.label||"Cloudflare",kind:x.kind});
           }
         }catch{}
       }
@@ -46,6 +46,13 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
         const configured=(cfg.server_urls||[])
           .filter((x:string)=>typeof x==="string"&&isHttp(x))
           .map((x:string)=>({url:expandTemplate(x,tmdbId,type,season,episode),label:"سيرفر"}));
+        const providers=(cfg.source_providers||[])
+          .filter((p:any)=>p&&p.enabled!==false&&typeof p.urlTemplate==="string"&&(p.type==="both"||p.type===type))
+          .sort((a:any,b:any)=>(Number(a.priority)||999)-(Number(b.priority)||999));
+        for(const p of providers){
+          const url=expandTemplate(p.urlTemplate,tmdbId,type,season,episode);
+          if(isHttp(url)) all.push({url,label:p.name||"مصدر",kind:p.kind});
+        }
         all.push(...custom,...configured);
       }catch{ if(!all.length) throw new Error("config"); }
       const unique=all.filter((x,i,a)=>x.url&&!a.slice(0,i).some(y=>y.url===x.url));
@@ -62,21 +69,23 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
 
   useEffect(()=>{
     setPlayerError("");
+    setSelected(activeIndex);
     if(!src||iframe)return;
     const v=document.querySelector<HTMLVideoElement>("[data-final-player]");
     if(!v)return;
     v.playbackRate=speed;
     let h:Hls|undefined;
-    const onError=()=>setPlayerError("تعذر تشغيل هذا المصدر. جرّب المصدر التالي.");
+    const fail=()=>setFailed(prev=>prev.includes(activeIndex)?prev:[...prev,activeIndex]);
+    const onError=()=>{fail();setPlayerError("تعذر تشغيل هذا المصدر. جاري تجربة المصدر التالي…");};
     v.addEventListener("error",onError);
     if(isHls(src)&&Hls.isSupported()){
       h=new Hls({enableWorker:true});
-      h.on(Hls.Events.ERROR,(_:any,d:any)=>{if(d.fatal)setPlayerError("تعذر تشغيل هذا المصدر. جرّب المصدر التالي.");});
+      h.on(Hls.Events.ERROR,(_:any,d:any)=>{if(d.fatal){fail();setPlayerError("تعذر تشغيل هذا المصدر. جاري تجربة المصدر التالي…");}});
       h.loadSource(src); h.attachMedia(v);
     }else if(v.canPlayType("application/vnd.apple.mpegurl")) v.src=src;
     else v.src=src;
     return()=>{v.removeEventListener("error",onError);h?.destroy();v.pause();};
-  },[src,speed,iframe]);
+  },[src,speed,iframe,activeIndex]);
 
   return <div className="player">
     <div className="player-video-wrap">
@@ -90,7 +99,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
     <div className="player-tools">
       <span>{sources.length?"المصادر المتاحة: "+sources.length:"لا يوجد مصدر"}</span>
       <label>السرعة <select value={speed} onChange={e=>setSpeed(Number(e.target.value))}>{[.5,.75,1,1.25,1.5,2].map(x=><option key={x} value={x}>{x}x</option>)}</select></label>
-      {sources.length>1&&<select value={selected} onChange={e=>setSelected(Number(e.target.value))}>{sources.map((x,i)=><option key={x.url} value={i}>{x.label||`مصدر ${i+1}`}</option>)}</select>}
+      {sources.length>1&&<select value={activeIndex} onChange={e=>setSelected(Number(e.target.value))}>{sources.map((x,i)=><option key={x.url} value={i}>{x.label||`مصدر ${i+1}`}</option>)}</select>}
     </div>
     {playerError&&<p className="error">{playerError}</p>}
   </div>;
