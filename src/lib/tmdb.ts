@@ -1,6 +1,6 @@
 const key=import.meta.env.VITE_TMDB_API_KEY as string|undefined;
 const base="https://api.themoviedb.org/3";
-async function get<T>(path:string){if(!key) throw new Error("TMDB API key is not configured"); const r=await fetch(base+path,{headers:{accept:"application/json",Authorization:"Bearer "+key}}); if(!r.ok) throw new Error("TMDB request failed"); return r.json() as Promise<T>}
+async function get<T>(path:string){if(!key) throw new Error("TMDB API key is not configured"); const sep=path.includes("?")?"&":"?"; const r=await fetch(base+path+sep+"api_key="+encodeURIComponent(key)+"&language=ar",{headers:{accept:"application/json"}}); if(!r.ok) throw new Error("TMDB request failed"); return r.json() as Promise<T>}
 export type Media={id:number;title?:string;name?:string;overview?:string;poster_path?:string|null;backdrop_path?:string|null;vote_average?:number;release_date?:string;first_air_date?:string;media_type?:string};
 export const img=(p?:string|null,size="w500")=>p?"https://image.tmdb.org/t/p/"+size+p:"";
 export const trending=()=>get<{results:Media[]}>("/trending/all/week?language=ar");
