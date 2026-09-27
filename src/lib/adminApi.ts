@@ -67,11 +67,12 @@ export async function deleteChatMessage(id:string){
 
 
 export async function getPublicPlaybackConfig(){
-  if(!supabase) return {server_urls:[],custom_streams:[]};
+  if(!supabase) return {server_urls:[],custom_streams:[],source_providers:[]};
   const {data,error}=await supabase.rpc("get_public_playback_config");
   if(error) throw error;
   return {
     server_urls:Array.isArray(data?.server_urls)?data.server_urls.filter((x:any)=>typeof x==="string"):[],
     custom_streams:Array.isArray(data?.custom_streams)?data.custom_streams:[],
+    source_providers:Array.isArray(data?.source_providers)?data.source_providers:[],
   };
 }
