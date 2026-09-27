@@ -6,13 +6,14 @@ export type AdminSettings={
   custom_streams:Array<{id:string;tmdbId:string;type:"movie"|"tv";label:string;url:string;subtitleUrl?:string}>;
   tv_channels:Array<{id:string;name:string;logo:string;url:string;category:string;country?:string}>;
   category_images:Record<string,string>; server_urls:string[];
+  source_providers:Array<{id:string;name:string;urlTemplate:string;type:"movie"|"tv"|"both";kind:"iframe"|"hls"|"mp4";enabled:boolean;priority:number}>;
   social_links:{discord:string;instagram:string;telegram:string;youtube:string};
 };
 
 export const defaultSettings:AdminSettings={
   banner_enabled:false,banner_text:"",ads_enabled:false,ad_image:"",
   apk_link:"",app_version:"",update_notes:"",custom_streams:[],tv_channels:[],
-  category_images:{},server_urls:[],social_links:{discord:"",instagram:"",telegram:"",youtube:""}
+  category_images:{},server_urls:[],source_providers:[],social_links:{discord:"",instagram:"",telegram:"",youtube:""}
 };
 
 export async function requireAdmin(){
