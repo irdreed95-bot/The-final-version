@@ -17,7 +17,7 @@ type Source = {
   kind?: "iframe" | "hls" | "mp4";
 };
 
-// تم تحديث رابط الـ API المباشر إلى Cloudflare Worker الجديد الخاص بك
+// رابط الـ API المباشر على Cloudflare Worker
 const DEFAULT_API_URL = "https://my-stream-proxy.irdreed95.workers.dev";
 
 function expandTemplate(template: string, tmdbId: number, type: "movie" | "tv", season: number, episode: number) {
@@ -36,7 +36,7 @@ function isHttp(url: string) {
   }
 }
 
-// تحديث الدالة للتحقق من خاصية isEmbed الصريحة
+// التحقق من نوع المصدر
 function detectKind(url: string, isM3U8?: boolean, isEmbed?: boolean): Source["kind"] {
   if (isEmbed) return "iframe";
   if (isM3U8 || /\.m3u8(?:$|[?#])/i.test(url)) return "hls";
@@ -69,7 +69,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
     const load = async () => {
       const all: Source[] = [];
 
-      // 1. استخدام رابط البيئة أو رابط Cloudflare Worker الافتراضي تلقائياً
+      // 1. جلب المصادر من Cloudflare Worker
       const api = ((import.meta.env.VITE_PLAYBACK_API_URL as string | undefined)?.trim()) || DEFAULT_API_URL;
 
       if (api) {
@@ -264,6 +264,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
               title={title || "المشغل"}
               allow="autoplay; fullscreen; picture-in-picture"
               allowFullScreen
+              referrerPolicy="no-referrer"
               style={{ width: "100%", height: "100%", border: 0 }}
             />
           ) : (
