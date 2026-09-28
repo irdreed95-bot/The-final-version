@@ -64,7 +64,7 @@ export default function AdminPage(){
     </Panel>}
 
     {tab==="servers"&&<Panel title="سيرفرات التطبيق D1 - D10">
-      <p className="hint">ضع هنا رابط API/Resolver تملكه أو مخول باستخدامه. عند تشغيل فيلم أو حلقة، سيرسل النظام له tmdbId و type و season و episode، ويتوقع JSON مثل: {sources:[{url,label,kind}]}. هذه السيرفرات هي التي يستخدمها المشغل الآن مع نظام الانتقال التلقائي بين المصادر.</p>
+      <p className="hint">ضع هنا رابط API/Resolver تملكه أو مخول باستخدامه. عند تشغيل فيلم أو حلقة، سيرسل النظام له tmdbId و type و season و episode، ويتوقع JSON يحتوي على sources، وكل مصدر يحتوي على url وlabel وkind. هذه السيرفرات هي التي يستخدمها المشغل الآن مع نظام الانتقال التلقائي بين المصادر.</p>
       {Array.from({length:10}).map((_,i)=><div className="server-row" key={i}><b>D{i+1}</b><input dir="ltr" value={settings.server_urls?.[i]||""} onChange={e=>{const a=[...(settings.server_urls||[])];a[i]=e.target.value;set({server_urls:a})}} placeholder="https://your-server.example/resolve"/></div>)}
     </Panel>}
 
