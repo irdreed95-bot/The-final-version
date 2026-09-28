@@ -19,7 +19,8 @@ export const defaultSettings:AdminSettings={
 export async function requireAdmin(){
   if(!supabase) throw new Error("Supabase غير مهيأ");
   const {data:{user}}=await supabase.auth.getUser();
-  if(!user) throw new Error("يجب تسجيل الدخول أولاً");\n  if((user.email||"").toLowerCase()!=="draeddraed75@gmail.com") throw new Error("ليس لديك صلاحية الوصول إلى لوحة التحكم");
+  if(!user) throw new Error("يجب تسجيل الدخول أولاً");
+  if((user.email||"").toLowerCase()!=="draeddraed75@gmail.com") throw new Error("ليس لديك صلاحية الوصول إلى لوحة التحكم");
   return user;
 }
 
