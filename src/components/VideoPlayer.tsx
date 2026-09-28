@@ -81,6 +81,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
     if(!v||!src||iframe)return;
     v.playbackRate=speed;
     const saved=Number(localStorage.getItem(storageKey)||0);
+    try{const raw=JSON.parse(localStorage.getItem("final-recent")||"[]");const item={key:storageKey,path:type==="tv"?`/series/${tmdbId}`:`/movie/${tmdbId}`,title:title||"مشاهدة",poster:poster||""};const next=[item,...raw.filter((x:any)=>x.key!==storageKey)].slice(0,12);localStorage.setItem("final-recent",JSON.stringify(next))}catch{}
     const restore=()=>{if(saved>10&&saved<v.duration-20){v.currentTime=saved;setPlayerError(`استأنفنا المشاهدة من ${Math.floor(saved/60)}:${String(Math.floor(saved%60)).padStart(2,"0")}`)}};
     const progress=()=>localStorage.setItem(storageKey,String(v.currentTime));
     v.addEventListener("loadedmetadata",restore);
