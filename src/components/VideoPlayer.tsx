@@ -50,6 +50,33 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
       }
       try{
         const cfg=await getPublicPlaybackConfig();
+
+        // D1-D10 are resolver/API endpoints. Each endpoint receives the current
+        // title/episode and may return { sources: [{ url, label, kind }] }.
+        for(const endpoint of (cfg.server_urls||[])){
+          if(typeof endpoint!=="string"||!isHttp(endpoint)) continue;
+          try{
+            const u=new URL(endpoint);
+            u.searchParams.set("tmdbId",String(tmdbId));
+            u.searchParams.set("type",type);
+            u.searchParams.set("season",String(season));
+            u.searchParams.set("episode",String(episode));
+            const r=await fetch(u.toString(),{headers:{accept:"application/json"}});
+            if(!r.ok) continue;
+            const d=await r.json();
+            const rows=Array.isArray(d?.sources)?d.sources:(Array.isArray(d)?d:(d?.url?[d]:[]));
+            for(const x of rows){
+              if(typeof x?.url==="string"&&isHttp(x.url)){
+                all.push({
+                  url:x.url,
+                  label:x.label||"سيرفر التطبيق",
+                  kind:x.kind||detectKind(x.url)
+                });
+              }
+            }
+          }catch{}
+        }
+
         const custom=(cfg.custom_streams||[])
           .filter((x:any)=>String(x.tmdbId)===String(tmdbId)&&x.type===type&&typeof x.url==="string"&&isHttp(x.url))
           .map((x:any)=>({url:String(x.url),label:x.label||"سيرفر مخصص",kind:detectKind(String(x.url))}));
