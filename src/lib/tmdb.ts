@@ -42,3 +42,8 @@ export const season=(id:number,s:number)=>get<any>("/tv/"+id+"/season/"+s+"?lang
 export type WatchProvider={provider_id:number;provider_name:string;logo_path?:string|null;display_priority?:number};
 export type WatchProviders={results?:Record<string,{link?:string;flatrate?:WatchProvider[];rent?:WatchProvider[];buy?:WatchProvider[];free?:WatchProvider[];ads?:WatchProvider[]}>};
 export const watchProviders=(id:number,type:"movie"|"tv")=>get<WatchProviders>("/"+type+"/"+id+"/watch/providers");
+
+export type DiscoverOptions={year?:string;minRating?:string;sort?:string};
+const discover=(type:"movie"|"tv",o:DiscoverOptions={})=>{const p=new URLSearchParams({language:"ar",page:"1",sort_by:o.sort||"popularity.desc",include_adult:"false"});if(o.year)p.set(type==="movie"?"primary_release_year":"first_air_date_year",o.year);if(o.minRating)p.set("vote_average.gte",o.minRating);return get<{results:Media[]}>(`/discover/${type}?${p.toString()}`)};
+export const discoverMovies=(o:DiscoverOptions={})=>discover("movie",o);
+export const discoverSeries=(o:DiscoverOptions={})=>discover("tv",o);
