@@ -4,7 +4,7 @@ import {Home as HomeIcon,Search,MessageCircle,User,Settings,LogIn,Sparkles,Clipb
 import {supabase} from "./lib/supabase";
 import Home from "./pages/Home"; import SearchPage from "./pages/SearchPage"; import ChatPage from "./pages/ChatPage"; import ProfilePage from "./pages/ProfilePage"; import AdminPage from "./pages/AdminPage"; import AuthPage from "./pages/AuthPage"; import DetailsPage from "./pages/DetailsPage"; import RequestsPage from "./pages/RequestsPage"; import AIPage from "./pages/AIPage";
 
-const baseNav=[["/","الرئيسية",HomeIcon],["/search","بحث",Search],["/chat","الدردشة",MessageCircle],["/requests","طلباتي",ClipboardList],["/ai","AI",Sparkles],["/profile","حسابي",User]] as const;
+const baseNav=[["/","الرئيسية",HomeIcon],["/news","الأخبار",Newspaper],["/search","بحث",Search],["/chat","الدردشة",MessageCircle],["/requests","طلباتي",ClipboardList],["/ai","AI",Sparkles],["/profile","حسابي",User]] as const;
 const ADMIN_EMAIL="draeddraed75@gmail.com";
 
 export default function App(){
