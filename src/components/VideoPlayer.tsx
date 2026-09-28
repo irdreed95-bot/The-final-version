@@ -278,6 +278,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
               title={title || "المشغل"}
               allow="autoplay; fullscreen; picture-in-picture"
               allowFullScreen
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
               referrerPolicy="no-referrer"
               style={{ width: "100%", height: "100%", border: 0 }}
             />
@@ -339,4 +340,4 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
       )}
     </div>
   );
-}
+            }
