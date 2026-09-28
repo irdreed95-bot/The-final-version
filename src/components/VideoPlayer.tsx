@@ -324,4 +324,4 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
       )}
     </div>
   );
-      }
+}
