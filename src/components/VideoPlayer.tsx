@@ -16,7 +16,7 @@ interface VideoPlayerProps {
   title?: string;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
   tmdbId,
   type = 'movie',
   season = 1,
@@ -121,3 +121,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     </div>
   );
 };
+
+
+export default VideoPlayer;
