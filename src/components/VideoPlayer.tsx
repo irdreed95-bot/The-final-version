@@ -25,6 +25,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
   const [playerError,setPlayerError]=useState("");
   const [failed,setFailed]=useState<number[]>([]);
   const videoRef=useRef<HTMLVideoElement>(null);
+  const storageKey=`final-progress:${type}:${tmdbId}:${season}:${episode}`;
   const videoRef=useRef<HTMLVideoElement>(null);
 
   useEffect(()=>{
@@ -79,6 +80,11 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
     const v=videoRef.current;
     if(!v||!src||iframe)return;
     v.playbackRate=speed;
+    const saved=Number(localStorage.getItem(storageKey)||0);
+    const restore=()=>{if(saved>10&&saved<v.duration-20){v.currentTime=saved;setPlayerError(`استأنفنا المشاهدة من ${Math.floor(saved/60)}:${String(Math.floor(saved%60)).padStart(2,"0")}`)}};
+    const progress=()=>localStorage.setItem(storageKey,String(v.currentTime));
+    v.addEventListener("loadedmetadata",restore);
+    v.addEventListener("timeupdate",progress);
     let h:Hls|undefined;
     let handled=false;
     const fail=()=>{
@@ -99,7 +105,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
       h.loadSource(src); h.attachMedia(v);
     }else if(v.canPlayType("application/vnd.apple.mpegurl")) v.src=src;
     else v.src=src;
-    return()=>{v.removeEventListener("error",onError);h?.destroy();v.pause();v.removeAttribute("src");v.load()};
+    return()=>{v.removeEventListener("error",onError);v.removeEventListener("loadedmetadata",restore);v.removeEventListener("timeupdate",progress);h?.destroy();v.pause();v.removeAttribute("src");v.load()};
   },[src,sourceKind,selected,speed]);
 
   return <div className="player">
@@ -117,5 +123,6 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
       {sources.length>1&&<select value={selected} onChange={e=>{setSelected(Number(e.target.value));setFailed([])}}>{sources.map((x,i)=><option key={x.url} value={i}>{x.label||`مصدر ${i+1}`}</option>)}</select>}
     </div>
     {playerError&&<p className="error player-error">{playerError}</p>}
+    {src&&!iframe&&<button className="player-clear-progress" onClick={()=>{localStorage.removeItem(storageKey);if(videoRef.current)videoRef.current.currentTime=0;setPlayerError("تمت إعادة المشاهدة من البداية.")}}>بدء من البداية</button>}
   </div>;
 }
