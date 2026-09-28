@@ -278,7 +278,6 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
               title={title || "المشغل"}
               allow="autoplay; fullscreen; picture-in-picture"
               allowFullScreen
-              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
               referrerPolicy="no-referrer"
               style={{ width: "100%", height: "100%", border: 0 }}
             />
@@ -299,7 +298,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
         <span>{sources.length ? "المصادر المتاحة: " + sources.length : "لا يوجد مصدر"}</span>
         <label>
           السرعة{" "}
-          <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+          <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))} >
             {[0.5, 0.75, 1, 1.25, 1.5, 2].map((x) => (
               <option key={x} value={x}>
                 {x}x
@@ -340,4 +339,4 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
       )}
     </div>
   );
-            }
+          }
