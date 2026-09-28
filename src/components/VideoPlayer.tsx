@@ -24,12 +24,13 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
   const [speed,setSpeed]=useState(1);
   const [playerError,setPlayerError]=useState("");
   const [failed,setFailed]=useState<number[]>([]);
+  const failedRef=useRef<number[]>([]);
   const storageKey=`final-progress:${type}:${tmdbId}:${season}:${episode}`;
   const videoRef=useRef<HTMLVideoElement>(null);
 
   useEffect(()=>{
     let alive=true;
-    setLoading(true); setError(""); setSelected(0); setFailed([]); setPlayerError("");
+    setLoading(true); setError(""); setSelected(0); setFailed([]); failedRef.current=[]; setPlayerError("");
     const load=async()=>{
       const all:Source[]=[];
       const api=(import.meta.env.VITE_PLAYBACK_API_URL as string|undefined)?.trim();
@@ -90,8 +91,9 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
     const fail=()=>{
       if(handled)return;
       handled=true;
-      setFailed(prev=>prev.includes(selected)?prev:[...prev,selected]);
-      const next=sources.findIndex((_,i)=>i!==selected&&!failed.includes(i));
+      failedRef.current=failedRef.current.includes(selected)?failedRef.current:[...failedRef.current,selected];
+      setFailed(failedRef.current);
+      const next=sources.findIndex((_,i)=>i!==selected&&!failedRef.current.includes(i));
       if(next>=0){
         setPlayerError("المصدر الحالي لم يعمل، جاري الانتقال للمصدر التالي…");
         setSelected(next);
@@ -120,7 +122,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
     <div className="player-tools">
       <span>{sources.length?"المصادر المتاحة: "+sources.length:"لا يوجد مصدر"}</span>
       <label>السرعة <select value={speed} onChange={e=>setSpeed(Number(e.target.value))}>{[.5,.75,1,1.25,1.5,2].map(x=><option key={x} value={x}>{x}x</option>)}</select></label>
-      {sources.length>1&&<select value={selected} onChange={e=>{setSelected(Number(e.target.value));setFailed([])}}>{sources.map((x,i)=><option key={x.url} value={i}>{x.label||`مصدر ${i+1}`}</option>)}</select>}
+      {sources.length>1&&<select value={selected} onChange={e=>{const n=Number(e.target.value);setSelected(n);failedRef.current=[];setFailed([])}}>{sources.map((x,i)=><option key={x.url} value={i}>{x.label||`مصدر ${i+1}`}</option>)}</select>}
     </div>
     {playerError&&<p className="error player-error">{playerError}</p>}
     {src&&!iframe&&<button className="player-clear-progress" onClick={()=>{localStorage.removeItem(storageKey);if(videoRef.current)videoRef.current.currentTime=0;setPlayerError("تمت إعادة المشاهدة من البداية.")}}>بدء من البداية</button>}
