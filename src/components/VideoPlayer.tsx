@@ -17,6 +17,9 @@ type Source = {
   kind?: "iframe" | "hls" | "mp4";
 };
 
+// مفتاح الترخيص الموحد الخاص بتطبيقك
+const API_SECRET_KEY = "Sarad_Secret_App_2026";
+
 // رابط الـ API المباشر على Cloudflare Worker
 const DEFAULT_API_URL = "https://my-stream-proxy.irdreed95.workers.dev";
 
@@ -69,7 +72,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
     const load = async () => {
       const all: Source[] = [];
 
-      // 1. جلب المصادر من Cloudflare Worker
+      // 1. جلب المصادر من Cloudflare Worker مع مفتاح الترخيص
       const api = ((import.meta.env.VITE_PLAYBACK_API_URL as string | undefined)?.trim()) || DEFAULT_API_URL;
 
       if (api) {
@@ -79,8 +82,19 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
           u.searchParams.set("type", type);
           u.searchParams.set("season", String(season));
           u.searchParams.set("episode", String(episode));
+          
+          // إرفاق مفتاح الترخيص في رابط الطلب
+          if (!u.searchParams.has("key")) {
+            u.searchParams.set("key", API_SECRET_KEY);
+          }
 
-          const r = await fetch(u.toString(), { headers: { accept: "application/json" } });
+          const r = await fetch(u.toString(), { 
+            headers: { 
+              accept: "application/json",
+              "X-API-KEY": API_SECRET_KEY // إرفاق الترخيص في الترويسة أيضاً
+            } 
+          });
+          
           if (r.ok) {
             const d = await r.json();
             const rawSources = Array.isArray(d?.sources) ? d.sources : [];
