@@ -63,7 +63,10 @@ export default function AdminPage(){
       </div>)}
     </Panel>}
 
-    {tab==="servers"&&<Panel title="سيرفرات التطبيق D1 - D10">{Array.from({length:10}).map((_,i)=><div className="server-row" key={i}><b>D{i+1}</b><input dir="ltr" value={settings.server_urls?.[i]||""} onChange={e=>{const a=[...(settings.server_urls||[])];a[i]=e.target.value;set({server_urls:a})}} placeholder="https://..."/></div>)}</Panel>}
+    {tab==="servers"&&<Panel title="سيرفرات التطبيق D1 - D10">
+      <p className="hint">ضع هنا رابط API/Resolver تملكه أو مخول باستخدامه. عند تشغيل فيلم أو حلقة، سيرسل النظام له tmdbId و type و season و episode، ويتوقع JSON مثل: {sources:[{url,label,kind}]}. هذه السيرفرات هي التي يستخدمها المشغل الآن مع نظام الانتقال التلقائي بين المصادر.</p>
+      {Array.from({length:10}).map((_,i)=><div className="server-row" key={i}><b>D{i+1}</b><input dir="ltr" value={settings.server_urls?.[i]||""} onChange={e=>{const a=[...(settings.server_urls||[])];a[i]=e.target.value;set({server_urls:a})}} placeholder="https://your-server.example/resolve"/></div>)}
+    </Panel>}
 
     {tab==="tickets"&&<Panel title="تذاكر الدعم"><button onClick={()=>adminApi.getTickets().then(setTickets)}><RefreshCw size={15}/> تحديث</button>{tickets.length===0?<div className="hint">لا توجد تذاكر حالياً.</div>:tickets.map(t=><div className="admin-item" key={t.id}><b>{t.name} · {t.email}</b><p>{t.message}</p><small>الحالة: {t.status}</small>{t.status!=="closed"&&<><textarea value={reply[t.id]||""} onChange={e=>setReply({...reply,[t.id]:e.target.value})} placeholder="اكتب الرد…"/><div className="inline-form"><button className="primary" onClick={async()=>{await adminApi.updateTicket(t.id,{status:"replied",reply:reply[t.id]||""});setTickets(await adminApi.getTickets())}}>إرسال الرد</button><button onClick={async()=>{await adminApi.updateTicket(t.id,{status:"closed"});setTickets(await adminApi.getTickets())}}>إغلاق</button></div></>}</div>)}</Panel>}
 
