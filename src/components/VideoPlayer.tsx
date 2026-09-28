@@ -36,7 +36,9 @@ function isHttp(url: string) {
   }
 }
 
-function detectKind(url: string, isM3U8?: boolean): Source["kind"] {
+// تحديث الدالة للتحقق من خاصية isEmbed الصريحة
+function detectKind(url: string, isM3U8?: boolean, isEmbed?: boolean): Source["kind"] {
+  if (isEmbed) return "iframe";
   if (isM3U8 || /\.m3u8(?:$|[?#])/i.test(url)) return "hls";
   if (/\.mp4(?:$|[?#])/i.test(url)) return "mp4";
   if (/\/embed(?:\/|\?|$)|iframe/i.test(url)) return "iframe";
@@ -87,8 +89,8 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
               if (typeof x?.url === "string" && isHttp(x.url)) {
                 all.push({
                   url: x.url,
-                  label: x.label || x.quality || "سيرفر Vercel المباشر",
-                  kind: x.kind || detectKind(x.url, x.isM3U8),
+                  label: x.label || x.quality || (x.isEmbed ? "سيرفر البث (Embed)" : "سيرفر Vercel المباشر"),
+                  kind: x.kind || detectKind(x.url, x.isM3U8, x.isEmbed),
                 });
               }
             }
@@ -122,7 +124,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
                 all.push({
                   url: x.url,
                   label: x.label || "سيرفر التطبيق",
-                  kind: x.kind || detectKind(x.url, x.isM3U8),
+                  kind: x.kind || detectKind(x.url, x.isM3U8, x.isEmbed),
                 });
               }
             }
@@ -131,7 +133,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
 
         const custom = (cfg.custom_streams || [])
           .filter((x: any) => String(x.tmdbId) === String(tmdbId) && x.type === type && typeof x.url === "string" && isHttp(x.url))
-          .map((x: any) => ({ url: String(x.url), label: x.label || "سيرفر مخصص", kind: detectKind(String(x.url)) }));
+          .map((x: any) => ({ url: String(x.url), label: x.label || "سيرفر مخصص", kind: detectKind(String(x.url), x.isM3U8, x.isEmbed) }));
 
         const providers = (cfg.source_providers || [])
           .filter((p: any) => p && p.enabled !== false && typeof p.urlTemplate === "string" && (p.type === "both" || p.type === type))
@@ -256,7 +258,14 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
           <div className="loading">جاري تجهيز المشغل…</div>
         ) : src ? (
           iframe ? (
-            <iframe key={src} src={src} title={title || "المشغل"} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
+            <iframe
+              key={src}
+              src={src}
+              title={title || "المشغل"}
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              style={{ width: "100%", height: "100%", border: 0 }}
+            />
           ) : (
             <video ref={videoRef} key={src} data-final-player poster={poster} controls playsInline preload="metadata" />
           )
