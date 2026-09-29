@@ -44,7 +44,7 @@ function detectKind(url: string, isM3U8?: boolean, isEmbed?: boolean): Source["k
   if (isEmbed) return "iframe";
   if (isM3U8 || /\.m3u8(?:$|[?#])/i.test(url)) return "hls";
   if (/\.mp4(?:$|[?#])/i.test(url)) return "mp4";
-  if (/\/embed(?:\/|\?|$)|iframe/i.test(url)) return "iframe";
+  if (/\/embed(?:\/|\?|$)|iframe|vidlink/i.test(url)) return "iframe";
   return "hls";
 }
 
@@ -71,6 +71,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
       const all: Source[] = [];
       const api = ((import.meta.env.VITE_PLAYBACK_API_URL as string | undefined)?.trim()) || DEFAULT_API_URL;
 
+      // 1. جلب المصادر من Cloudflare Worker مع زيادة المهلة لضمان الاستجابة
       if (api) {
         try {
           const u = new URL(api);
@@ -82,17 +83,18 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
 
           const r = await fetch(u.toString(), {
             headers: { accept: "application/json", "X-API-KEY": API_SECRET_KEY },
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(30000), // زيادة وقت الانتظار إلى 30 ثانية لعدم فقدان VidLink
           });
 
           if (r.ok) {
             const d = await r.json();
-            const rawSources = Array.isArray(d?.sources) ? d.sources : [];
+            // دعم مرن لمختلف صيغ الاستجابة القادمة من الواركر
+            const rawSources = Array.isArray(d?.sources) ? d.sources : Array.isArray(d) ? d : d?.url ? [d] : [];
             for (const x of rawSources) {
               if (typeof x?.url === "string" && isHttp(x.url)) {
                 all.push({
                   url: x.url,
-                  label: x.label || x.quality || (x.isEmbed ? "سيرفر البث" : "سيرفر مباشر"),
+                  label: x.label || x.quality || (x.isEmbed ? "سيرفر البث (VidLink/Embed)" : "سيرفر مباشر HLS"),
                   kind: x.kind || detectKind(x.url, x.isM3U8, x.isEmbed),
                 });
               }
@@ -103,6 +105,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
         }
       }
 
+      // 2. جلب المصادر والمزودات المخصصة من الإعدادات العامة
       try {
         const cfg = await getPublicPlaybackConfig();
 
@@ -116,7 +119,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
             u.searchParams.set("episode", String(episode));
             const r = await fetch(u.toString(), {
               headers: { accept: "application/json" },
-              signal: AbortSignal.timeout(12000),
+              signal: AbortSignal.timeout(20000),
             });
             if (!r.ok) continue;
 
@@ -156,7 +159,8 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
         if (!all.length) throw new Error("config");
       }
 
-      const unique = all.filter((x, i, a) => x.url && !a.slice(0, i).some((y) => y.url === x.url));
+      // تصفية الروابط المكررة بدقة
+      const unique = all.filter((x, i, a) => x.url && !a.slice(0, i).some((y) => y.url.trim() === x.url.trim()));
       if (!alive) return;
 
       setSources(unique);
@@ -228,12 +232,6 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
         setSelected(next);
       } else {
         setPlayerError("تعذر تشغيل المصادر المتاحة لهذا العنوان.");
-      }
-    };
-
-    const recover = () => {
-      if (h && !h.destroyed) {
-        try { h.startLoad(-1); } catch {}
       }
     };
 
@@ -374,7 +372,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
             }}
           >
             {sources.map((x, i) => (
-              <option key={x.url} value={i}>{x.label || `مصدر ${i + 1}`}</option>
+              <option key={x.url + i} value={i}>{x.label || `مصدر ${i + 1}`}</option>
             ))}
           </select>
         )}
@@ -396,4 +394,4 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
       )}
     </div>
   );
-}
+      }
