@@ -64,7 +64,13 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
           headers: { accept: "application/json" },
         });
 
-        if (!response.ok) throw new Error("فشل الجلب من السيرفر");
+        if (!response.ok) {
+          let details: any = null;
+          try { details = await response.json(); } catch { /* ignore */ }
+          const message = details?.error || `فشل الجلب من السيرفر (${response.status})`;
+          const code = details?.code ? ` [${details.code}]` : '';
+          throw new Error(message + code);
+        }
 
         const data = await response.json();
         const rawSources = Array.isArray(data?.sources) ? data.sources : Array.isArray(data) ? data : [];
@@ -89,8 +95,8 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
         } else {
           setError("لم يتم العثور على روابط تشغيل لهذا العنوان من الـ API.");
         }
-      } catch (err) {
-        if (alive) setError("تعذر الاتصال بسيرفر فك الروابط.");
+      } catch (err: any) {
+        if (alive) setError(err?.message || "تعذر الاتصال بسيرفر فك الروابط.");
       } finally {
         if (alive) setLoading(false);
       }
