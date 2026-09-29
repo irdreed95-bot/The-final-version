@@ -73,8 +73,10 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
         const parsedSources: Source[] = [];
         for (const item of rawSources) {
           if (typeof item?.url === "string" && isHttp(item.url)) {
+            const proxiedUrl = typeof item?.proxiedUrl === "string" && isHttp(item.proxiedUrl) ? item.proxiedUrl : undefined;
             parsedSources.push({
               url: item.url,
+              proxiedUrl,
               label: item.label || item.name || `مصدر ${parsedSources.length + 1}`,
               kind: item.kind || detectKind(item.url),
             });
