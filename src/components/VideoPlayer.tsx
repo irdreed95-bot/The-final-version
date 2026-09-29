@@ -12,12 +12,10 @@ type Props = {
 
 type Source = {
   url: string;
+  proxiedUrl?: string;
   label?: string;
   kind?: "hls" | "mp4" | "iframe";
 };
-
-const API_SECRET_KEY = "Sarad_Secret_App_2026";
-const DEFAULT_API_URL = "https://my-stream-proxy.irdreed95.workers.dev";
 
 function isHttp(url: string) {
   try {
@@ -51,18 +49,19 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
     setSelected(0);
 
     const fetchSourcesFromWorker = async () => {
-      const api = (import.meta.env.VITE_PLAYBACK_API_URL as string | undefined)?.trim() || DEFAULT_API_URL;
+      const api = (import.meta.env.VITE_PLAYBACK_API_URL as string | undefined)?.trim();
+      if (!api) throw new Error("VITE_PLAYBACK_API_URL is not configured");
 
       try {
-        const u = new URL(api);
+        const endpoint = api.endsWith("/resolve") ? api : api.replace(/\/$/, "") + "/resolve";
+        const u = new URL(endpoint);
         u.searchParams.set("tmdbId", String(tmdbId));
         u.searchParams.set("type", type);
         u.searchParams.set("season", String(season));
         u.searchParams.set("episode", String(episode));
-        u.searchParams.set("key", API_SECRET_KEY);
 
         const response = await fetch(u.toString(), {
-          headers: { accept: "application/json", "X-API-KEY": API_SECRET_KEY },
+          headers: { accept: "application/json" },
         });
 
         if (!response.ok) throw new Error("فشل الجلب من السيرفر");
@@ -73,8 +72,10 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
         const parsedSources: Source[] = [];
         for (const item of rawSources) {
           if (typeof item?.url === "string" && isHttp(item.url)) {
+            const proxiedUrl = typeof item?.proxiedUrl === "string" && isHttp(item.proxiedUrl) ? item.proxiedUrl : undefined;
             parsedSources.push({
               url: item.url,
+              proxiedUrl,
               label: item.label || item.name || `مصدر ${parsedSources.length + 1}`,
               kind: item.kind || detectKind(item.url),
             });
@@ -104,9 +105,9 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
 
   const currentSource = sources[selected];
   const src = currentSource?.url || "";
+  const playbackSrc = currentSource?.proxiedUrl || src;
   const isIframe = currentSource?.kind === "iframe";
 
-  // إعداد التشغيل في مشغل الفيديو الخاص بك
   useEffect(() => {
     setPlayerError("");
     const v = videoRef.current;
@@ -130,17 +131,16 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
     v.addEventListener("loadedmetadata", handleLoadedMetadata);
     v.addEventListener("timeupdate", handleTimeUpdate);
 
-    // تشغيل ملفات M3U8/HLS داخل المشغل المباشر
     if (currentSource?.kind === "hls" || /\.m3u8/i.test(src)) {
       if (Hls.isSupported()) {
         hlsInstance = new Hls({ enableWorker: true });
-        hlsInstance.loadSource(src);
+        hlsInstance.loadSource(playbackSrc);
         hlsInstance.attachMedia(v);
         hlsInstance.on(Hls.Events.ERROR, () => {
           setPlayerError("خطأ في تشغيل تدفق الفيديو HLS.");
         });
       } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
-        v.src = src;
+        v.src = playbackSrc;
       }
     } else {
       v.src = src;
@@ -151,7 +151,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
       v.removeEventListener("timeupdate", handleTimeUpdate);
       hlsInstance?.destroy();
     };
-  }, [src, isIframe, currentSource, storageKey]);
+  }, [playbackSrc, isIframe, currentSource, storageKey]);
 
   return (
     <div className="player">
@@ -160,9 +160,8 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
           <div className="loading">جاري جلب روابط البث المباشرة من الـ API…</div>
         ) : src ? (
           isIframe ? (
-            /* في حال كان الرابط قادماً كـ iframe بدون فك تشفير */
             <iframe
-              key={src}
+              key={playbackSrc}
               src={src}
               title={title || "المشغل"}
               allow="autoplay; fullscreen; picture-in-picture"
@@ -170,7 +169,6 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
               style={{ width: "100%", height: "100%", border: 0 }}
             />
           ) : (
-            /* المشغل الخاص بك (HTML5 Video Player) */
             <video
               ref={videoRef}
               key={src}
