@@ -44,8 +44,49 @@ function detectKind(url: string, isM3U8?: boolean, isEmbed?: boolean): Source["k
   if (isEmbed) return "iframe";
   if (isM3U8 || /\.m3u8(?:$|[?#])/i.test(url)) return "hls";
   if (/\.mp4(?:$|[?#])/i.test(url)) return "mp4";
-  if (/\/embed(?:\/|\?|$)|iframe|vidlink/i.test(url)) return "iframe";
+  if (/vidlink|embed|vidsrc|\/v\/|\/tv\/|\/movie\//i.test(url)) return "iframe";
   return "hls";
+}
+
+// المصادر الاحتياطية المباشرة لضمان ألا يتوقف المشغل أبداً
+function getDefaultFallbackSources(tmdbId: number, type: "movie" | "tv", season: number, episode: number): Source[] {
+  if (type === "tv") {
+    return [
+      {
+        url: `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`,
+        label: "سيرفر VidLink الرئيسي",
+        kind: "iframe",
+      },
+      {
+        url: `https://vidsrc.me/embed/tv?tmdb=${tmdbId}&season=${season}&episode=${episode}`,
+        label: "سيرفر VidSrc الاحتياطي",
+        kind: "iframe",
+      },
+      {
+        url: `https://embed.su/embed/tv/${tmdbId}/${season}/${episode}`,
+        label: "سيرفر EmbedSU (بدون إعلانات)",
+        kind: "iframe",
+      },
+    ];
+  }
+
+  return [
+    {
+      url: `https://vidlink.pro/movie/${tmdbId}`,
+      label: "سيرفر VidLink الرئيسي",
+      kind: "iframe",
+    },
+    {
+      url: `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`,
+      label: "سيرفر VidSrc الاحتياطي",
+      kind: "iframe",
+    },
+    {
+      url: `https://embed.su/embed/movie/${tmdbId}`,
+      label: "سيرفر EmbedSU (بدون إعلانات)",
+      kind: "iframe",
+    },
+  ];
 }
 
 export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, poster, title }: Props) {
@@ -71,7 +112,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
       const all: Source[] = [];
       const api = ((import.meta.env.VITE_PLAYBACK_API_URL as string | undefined)?.trim()) || DEFAULT_API_URL;
 
-      // 1. جلب المصادر من Cloudflare Worker مع زيادة المهلة لضمان الاستجابة
+      // 1. جلب المصادر من Cloudflare Worker
       if (api) {
         try {
           const u = new URL(api);
@@ -83,18 +124,17 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
 
           const r = await fetch(u.toString(), {
             headers: { accept: "application/json", "X-API-KEY": API_SECRET_KEY },
-            signal: AbortSignal.timeout(30000), // زيادة وقت الانتظار إلى 30 ثانية لعدم فقدان VidLink
+            signal: AbortSignal.timeout(30000),
           });
 
           if (r.ok) {
             const d = await r.json();
-            // دعم مرن لمختلف صيغ الاستجابة القادمة من الواركر
             const rawSources = Array.isArray(d?.sources) ? d.sources : Array.isArray(d) ? d : d?.url ? [d] : [];
             for (const x of rawSources) {
               if (typeof x?.url === "string" && isHttp(x.url)) {
                 all.push({
                   url: x.url,
-                  label: x.label || x.quality || (x.isEmbed ? "سيرفر البث (VidLink/Embed)" : "سيرفر مباشر HLS"),
+                  label: x.label || x.quality || "سيرفر البث",
                   kind: x.kind || detectKind(x.url, x.isM3U8, x.isEmbed),
                 });
               }
@@ -156,10 +196,15 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
 
         all.push(...custom);
       } catch {
-        if (!all.length) throw new Error("config");
+        // الإخفاق الصامت لاستخدام المصادر الاحتياطية
       }
 
-      // تصفية الروابط المكررة بدقة
+      // إذا لم يتم العثور على أي مصدر، أضف المصادر الافتراضية
+      if (all.length === 0) {
+        all.push(...getDefaultFallbackSources(tmdbId, type, season, episode));
+      }
+
+      // تصفية الروابط المكررة
       const unique = all.filter((x, i, a) => x.url && !a.slice(0, i).some((y) => y.url.trim() === x.url.trim()));
       if (!alive) return;
 
@@ -169,7 +214,10 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
 
     load()
       .catch(() => {
-        if (alive) setError("تعذر تحميل إعدادات المشاهدة.");
+        if (alive) {
+          const fallbacks = getDefaultFallbackSources(tmdbId, type, season, episode);
+          setSources(fallbacks);
+        }
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -318,7 +366,6 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
               allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope"
               allowFullScreen
               referrerPolicy="origin-when-cross-origin"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
               style={{ width: "100%", height: "100%", border: 0 }}
             />
           ) : (
@@ -394,4 +441,4 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
       )}
     </div>
   );
-      }
+          }
