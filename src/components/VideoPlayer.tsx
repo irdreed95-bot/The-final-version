@@ -274,9 +274,9 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
               key={src}
               src={src}
               title={title || "المشغل"}
-              allow="autoplay; fullscreen; picture-in-picture"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope"
               allowFullScreen
-              referrerPolicy="no-referrer"
+              referrerPolicy="origin"
               style={{ width: "100%", height: "100%", border: 0 }}
             />
           ) : (
