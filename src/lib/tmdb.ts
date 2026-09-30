@@ -68,8 +68,12 @@ export type SeriesAvailabilityReport={
   checkedEpisodes:number;
   availableEpisodes:number;
   coverage:number|null;
+  mainEpisodes:number;
   availableMainEpisodes:number;
+  mainCoverage:number|null;
+  specialEpisodes:number;
   availableSpecialEpisodes:number;
+  specialCoverage:number|null;
   seasons:SeasonAvailability[];
 };
 
@@ -298,7 +302,9 @@ export async function getSeriesAvailability(
 
     const checkedEpisodes=seasonStates.reduce((sum,s)=>sum+s.fetchedEpisodeCount,0);
     const availableEpisodes=seasonStates.reduce((sum,s)=>sum+s.availableEpisodeCount,0);
+    const mainEpisodes=seasonStates.filter(s=>!s.isSpecials).reduce((sum,s)=>sum+s.fetchedEpisodeCount,0);
     const availableMainEpisodes=seasonStates.filter(s=>!s.isSpecials).reduce((sum,s)=>sum+s.availableEpisodeCount,0);
+    const specialEpisodes=seasonStates.filter(s=>s.isSpecials).reduce((sum,s)=>sum+s.fetchedEpisodeCount,0);
     const availableSpecialEpisodes=seasonStates.filter(s=>s.isSpecials).reduce((sum,s)=>sum+s.availableEpisodeCount,0);
     const report:SeriesAvailabilityReport={
       tmdbId:id,
@@ -306,15 +312,19 @@ export async function getSeriesAvailability(
       checkedEpisodes,
       availableEpisodes,
       coverage:checkedEpisodes?availableEpisodes/checkedEpisodes:null,
+      mainEpisodes,
       availableMainEpisodes,
+      mainCoverage:mainEpisodes?availableMainEpisodes/mainEpisodes:null,
+      specialEpisodes,
       availableSpecialEpisodes,
+      specialCoverage:specialEpisodes?availableSpecialEpisodes/specialEpisodes:null,
       seasons:seasonStates,
     };
     const at=Date.now();
     seriesReportCache.set(cacheKey,{value:report,at});
     return report;
   }catch{
-    const empty:SeriesAvailabilityReport={tmdbId:id,totalMetadataEpisodes:0,checkedEpisodes:0,availableEpisodes:0,coverage:null,availableMainEpisodes:0,availableSpecialEpisodes:0,seasons:[]};
+    const empty:SeriesAvailabilityReport={tmdbId:id,totalMetadataEpisodes:0,checkedEpisodes:0,availableEpisodes:0,coverage:null,mainEpisodes:0,availableMainEpisodes:0,mainCoverage:null,specialEpisodes:0,availableSpecialEpisodes:0,specialCoverage:null,seasons:[]};
     seriesReportCache.set(cacheKey,{value:empty,at:Date.now()});
     return empty;
   }
