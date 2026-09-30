@@ -276,7 +276,7 @@ export async function getSeriesAvailability(
           for(const item of data.episodes){
             const seasonNumber=Number(item?.season);
             const episodeNumber=Number(item?.episode);
-            if(!Number.isInteger(seasonNumber)||!Number.isInteger(episodeNumber))continue;
+            if(!Number.isInteger(seasonNumber)||!Number.isFinite(episodeNumber))continue;
             availabilityMap.set(seasonNumber+":"+episodeNumber,{
               season:seasonNumber,
               episode:episodeNumber,
