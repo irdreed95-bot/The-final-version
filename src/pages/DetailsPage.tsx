@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 import {Link,useParams} from "react-router-dom";
-import {img,movie,series,season,watchProviders} from "../lib/tmdb";
+import {img,movie,series,season,watchProviders,isPlayable} from "../lib/tmdb";
 import VideoPlayer from "../components/VideoPlayer";
 
 export default function DetailsPage({kind}:{kind:"movie"|"series"}){
@@ -9,20 +9,22 @@ export default function DetailsPage({kind}:{kind:"movie"|"series"}){
   const [sn,setSn]=useState(1);
   const [episode,setEpisode]=useState(1);
   const [eps,setEps]=useState<any[]>([]);
-const [providers,setProviders]=useState<any>(null);
+  const [providers,setProviders]=useState<any>(null);
+  const [playable,setPlayable]=useState(false);
+  const [checkingPlayback,setCheckingPlayback]=useState(true);
   useEffect(()=>{if(id)(kind==="movie"?movie(+id):series(+id)).then(setData).catch(()=>setData(null));},[id,kind]);
   useEffect(()=>{if(kind==="series"&&id)season(+id,sn).then(x=>setEps(x.episodes||[])).catch(()=>setEps([]));},[id,sn,kind]);
-useEffect(()=>{if(id)watchProviders(+id,kind==="series"?"tv":"movie").then(x=>setProviders(x.results?.IQ||x.results?.AE||x.results?.US||null)).catch(()=>setProviders(null));},[id,kind]);
+  useEffect(()=>{if(id)watchProviders(+id,kind==="series"?"tv":"movie").then(x=>setProviders(x.results?.IQ||x.results?.AE||x.results?.US||null)).catch(()=>setProviders(null));},[id,kind]);
+  useEffect(()=>{let alive=true;if(!id){setCheckingPlayback(false);setPlayable(false);return;}setCheckingPlayback(true);setPlayable(false);isPlayable(Number(id),kind==="series"?"tv":"movie",sn,episode).then(value=>{if(alive){setPlayable(value);setCheckingPlayback(false);}}).catch(()=>{if(alive){setPlayable(false);setCheckingPlayback(false);}});return()=>{alive=false};},[id,kind,sn,episode]);
   if(!data)return <div className="loading">جاري تحميل التفاصيل…</div>;
-  const title=data.title||data.name;
-  const cast=(data.credits?.cast||[]).slice(0,10);
-  const seasons=(data.seasons||[]).filter((x:any)=>x.season_number>0);
+  const title=data.title||data.name;const cast=(data.credits?.cast||[]).slice(0,10);const seasons=(data.seasons||[]).filter((x:any)=>x.season_number>0);
   return <div className="details">
     <div className="backdrop" style={{backgroundImage:"linear-gradient(180deg,#08090c00,#08090c),url("+(data.backdrop_path?"https://image.tmdb.org/t/p/original"+data.backdrop_path:"")+")"}}/>
     <div className="detail-body"><img className="detail-poster" src={img(data.poster_path,"w500")}/><div><span className="pill">{kind==="movie"?"فيلم":"مسلسل"}</span><h2>{title}</h2><p>{data.overview||"لا توجد قصة مترجمة حالياً."}</p><div className="meta">★ {(data.vote_average||0).toFixed(1)} · {data.release_date||data.first_air_date||"—"}</div></div></div>
     {kind==="series"&&<section className="episodes"><div className="section-head"><h3>المواسم والحلقات</h3><select value={sn} onChange={e=>{setSn(+e.target.value);setEpisode(1)}}>{seasons.map((x:any)=><option key={x.season_number} value={x.season_number}>{x.name}</option>)}</select></div><div className="episode-grid">{eps.map((e:any)=><article key={e.id} className={episode===e.episode_number?"selected-episode":""}><b>{e.episode_number}. {e.name}</b><p>{e.overview||"بدون وصف"}</p><button onClick={()=>{setEpisode(e.episode_number);document.getElementById("watch")?.scrollIntoView({behavior:"smooth"})}}>مشاهدة</button></article>)}</div></section>}
     <section className="cast"><h3>طاقم العمل</h3><div className="cast-grid">{cast.map((c:any)=><div key={c.id}><img src={img(c.profile_path,"w185")} alt={c.name}/><b>{c.name}</b><small>{c.character}</small></div>)}</div></section>
-    <section className="watch-options"><h3>طرق المشاهدة الرسمية</h3><p className="hint">إذا كان العنوان متاحاً عبر خدمة بث أو شراء رسمية في منطقتك، ستظهر هنا.</p>{providers?.link&&<a className="primary" href={providers.link} target="_blank" rel="noreferrer">عرض خيارات المشاهدة</a>}{providers?.flatrate?.length>0&&<div className="provider-list">{providers.flatrate.map((p:any)=><span key={p.provider_id}>{p.provider_name}</span>)}</div>}</section><section id="watch" className="watch"><h3>المشغل</h3><VideoPlayer tmdbId={Number(id)} type={kind==="series"?"tv":"movie"} season={sn} episode={episode} poster={img(data.backdrop_path,"w1280")} title={title}/><p className="hint">المشغل يقرأ المصادر المهيأة من لوحة الإدارة تلقائياً.</p></section>
+    <section className="watch-options"><h3>طرق المشاهدة الرسمية</h3><p className="hint">إذا كان العنوان متاحاً عبر خدمة بث أو شراء رسمية في منطقتك، ستظهر هنا.</p>{providers?.link&&<a className="primary" href={providers.link} target="_blank" rel="noreferrer">عرض خيارات المشاهدة</a>}{providers?.flatrate?.length>0&&<div className="provider-list">{providers.flatrate.map((p:any)=><span key={p.provider_id}>{p.provider_name}</span>)}</div>}</section>
+    <section id="watch" className="watch"><h3>المشغل</h3>{checkingPlayback?<div className="loading">جاري التحقق من توفر هذه الحلقة للتشغيل…</div>:playable?<VideoPlayer tmdbId={Number(id)} type={kind==="series"?"tv":"movie"} season={sn} episode={episode} poster={img(data.backdrop_path,"w1280")} title={title}/>:<div className="empty-state">هذا العنوان أو الحلقة غير متاحة للتشغيل حالياً من المصادر المهيأة.</div>}<p className="hint">تظهر هنا فقط المصادر المباشرة HLS/MP4 التي يقبلها الـ API.</p></section>
     <Link className="back" to="/">← العودة</Link>
   </div>
 }
