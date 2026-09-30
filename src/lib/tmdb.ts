@@ -46,7 +46,7 @@ export type EpisodeAvailability={
   id?:number;
   name?:string;
   airDate?:string;
-  available:boolean;
+  available:boolean|null;
   sourceCount:number;
 };
 
@@ -55,6 +55,7 @@ export type SeasonAvailability={
   name:string;
   declaredEpisodeCount:number;
   fetchedEpisodeCount:number;
+  checkedEpisodeCount:number;
   availableEpisodeCount:number;
   coverage:number|null;
   state:"available"|"partial"|"empty"|"declared-empty"|"unknown";
@@ -252,11 +253,12 @@ export async function getSeriesAvailability(
         name:String(meta.name||("الموسم "+sn)),
         declaredEpisodeCount:declared,
         fetchedEpisodeCount:normalizedEpisodes.length,
+        checkedEpisodeCount:0,
         availableEpisodeCount:0,
         coverage:null,
         state,
         isSpecials,
-        episodes:normalizedEpisodes.map((ep:any)=>({season:sn,episode:Number(ep.episode_number),id:Number(ep?.id)||undefined,name:String(ep?.name||"حلقة "+ep.episode_number),airDate:ep?.air_date||undefined,available:false,sourceCount:0})),
+        episodes:normalizedEpisodes.map((ep:any)=>({season:sn,episode:Number(ep.episode_number),id:Number(ep?.id)||undefined,name:String(ep?.name||"حلقة "+ep.episode_number),airDate:ep?.air_date||undefined,available:null,sourceCount:0})),
       });
     }
 
@@ -294,21 +296,24 @@ export async function getSeriesAvailability(
 
     for(const seasonReport of seasonStates){
       const updated=seasonReport.episodes.map(ep=>{const status=availabilityMap.get(seasonReport.seasonNumber+":"+ep.episode);return status?{...ep,...status}:ep;});
-      const available=updated.filter(ep=>ep.available).length;
+      const checked=updated.filter(ep=>ep.available!==null).length;
+      const available=updated.filter(ep=>ep.available===true).length;
       seasonReport.episodes=updated;
+      seasonReport.checkedEpisodeCount=checked;
       seasonReport.availableEpisodeCount=available;
-      seasonReport.coverage=updated.length?available/updated.length:null;
+      seasonReport.coverage=checked?available/checked:null;
     }
 
-    const checkedEpisodes=seasonStates.reduce((sum,s)=>sum+s.fetchedEpisodeCount,0);
+    const totalMetadataEpisodes=seasonStates.reduce((sum,s)=>sum+s.fetchedEpisodeCount,0);
+    const checkedEpisodes=seasonStates.reduce((sum,s)=>sum+s.checkedEpisodeCount,0);
     const availableEpisodes=seasonStates.reduce((sum,s)=>sum+s.availableEpisodeCount,0);
-    const mainEpisodes=seasonStates.filter(s=>!s.isSpecials).reduce((sum,s)=>sum+s.fetchedEpisodeCount,0);
+    const mainEpisodes=seasonStates.filter(s=>!s.isSpecials).reduce((sum,s)=>sum+s.checkedEpisodeCount,0);
     const availableMainEpisodes=seasonStates.filter(s=>!s.isSpecials).reduce((sum,s)=>sum+s.availableEpisodeCount,0);
-    const specialEpisodes=seasonStates.filter(s=>s.isSpecials).reduce((sum,s)=>sum+s.fetchedEpisodeCount,0);
+    const specialEpisodes=seasonStates.filter(s=>s.isSpecials).reduce((sum,s)=>sum+s.checkedEpisodeCount,0);
     const availableSpecialEpisodes=seasonStates.filter(s=>s.isSpecials).reduce((sum,s)=>sum+s.availableEpisodeCount,0);
     const report:SeriesAvailabilityReport={
       tmdbId:id,
-      totalMetadataEpisodes:checkedEpisodes,
+      totalMetadataEpisodes,
       checkedEpisodes,
       availableEpisodes,
       coverage:checkedEpisodes?availableEpisodes/checkedEpisodes:null,
