@@ -112,7 +112,7 @@ export default function VideoPlayer({ tmdbId, type, season = 1, episode = 1, pos
   const currentSource = sources[selected];
   const src = currentSource?.url || "";
   const playbackSrc = currentSource?.proxiedUrl || src;
-  const isIframe = currentSource?.kind === "iframe";
+  const isIframe = false; // Direct HLS/MP4 only; iframe playback is disabled.
 
   useEffect(() => {
     setPlayerError("");
