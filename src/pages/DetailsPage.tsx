@@ -8,6 +8,7 @@ function seasonStateLabel(state:SeriesAvailabilityReport["seasons"][number]["sta
   if(state==="partial")return"غير مكتمل";
   if(state==="declared-empty")return"معلن ولم تُرفع حلقاته";
   if(state==="empty")return"بدون حلقات";
+  if(state==="missing")return"الموسم مفقود من بيانات TMDB";
   return"تعذر جلب بيانات الموسم";
 }
 
