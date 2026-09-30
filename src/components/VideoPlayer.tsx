@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import {getPlaybackSources,type PlaybackSource} from "../lib/playback";
-type Props={tmdbId:number;type:"movie"|"tv";season?:number;episode?:number;poster?:string;title?:string};
+type Props={tmdbId:number;type:"movie"|"tv";season?:number;episode?:number;poster?:string;title?:string;directUrl?:string};
 
-export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title}:Props){
+export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title,directUrl}:Props){
  const [sources,setSources]=useState<PlaybackSource[]>([]),[selected,setSelected]=useState(0),[loading,setLoading]=useState(true),[error,setError]=useState(""),[speed]=useState(1),[playerError,setPlayerError]=useState("");
  const videoRef=useRef<HTMLVideoElement>(null);
  const storageKey="final-progress:"+type+":"+tmdbId+":"+season+":"+episode;
  useEffect(()=>{let alive=true;setLoading(true);setError("");setSelected(0);setPlayerError("");
-  getPlaybackSources({tmdbId,type,season,episode}).then(value=>{if(!alive)return;if(value.length)setSources(value);else setError("لا يوجد مصدر تشغيل مباشر مهيأ لهذا العنوان.");}).catch((err:any)=>{if(alive)setError(err?.message||"تعذر الوصول إلى مصدر التشغيل.");}).finally(()=>{if(alive)setLoading(false)});
+  const request=directUrl?Promise.resolve([{url:directUrl,kind:/\\.m3u8(?:$|[?#])/i.test(directUrl)?"hls":/\\.mp4(?:$|[?#])/i.test(directUrl)?"mp4":undefined} as PlaybackSource]):getPlaybackSources({tmdbId,type,season,episode}); request.then(value=>{if(!alive)return;if(value.length)setSources(value);else setError("لا يوجد مصدر تشغيل مباشر مهيأ لهذا العنوان.");}).catch((err:any)=>{if(alive)setError(err?.message||"تعذر الوصول إلى مصدر التشغيل.");}).finally(()=>{if(alive)setLoading(false)});
   return()=>{alive=false};
- },[tmdbId,type,season,episode]);
+ },[tmdbId,type,season,episode,directUrl]);
  const currentSource=sources[selected],playbackSrc=currentSource?.proxiedUrl||currentSource?.url||"";
  useEffect(()=>{setPlayerError("");const v=videoRef.current;if(!v||!playbackSrc)return;let hlsInstance:Hls|undefined;const savedTime=Number(localStorage.getItem(storageKey)||0);
   const handleLoadedMetadata=()=>{if(savedTime>10&&Number.isFinite(v.duration)&&savedTime<v.duration-20)v.currentTime=savedTime};
