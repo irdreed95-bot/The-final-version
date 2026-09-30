@@ -122,7 +122,9 @@ export default function DetailsPage({kind}:{kind:"movie"|"series"}){
                       ?"الموسم معلن لكنه لا يحتوي حلقات مرفوعة/مرجعة بعد."
                       :currentSeason.state==="unknown"
                         ?"تعذر جلب حلقات هذا الموسم من TMDB حالياً."
-                        :"هذا الموسم لا يحتوي حلقات."}
+                        :currentSeason.state==="missing"
+                          ?"هذا رقم الموسم مفقود من بيانات TMDB ولا توجد حلقات يمكن فحصها."
+                          :"هذا الموسم لا يحتوي حلقات."}
                   </div>
                 : <div className="episode-grid">
                     {currentSeason.episodes.map((e:any,i:number)=><article key={currentSeason.seasonNumber+":"+e.episode+":"+i} className={episode===e.episode?"selected-episode":""}>
