@@ -58,7 +58,7 @@ export type SeasonAvailability={
   checkedEpisodeCount:number;
   availableEpisodeCount:number;
   coverage:number|null;
-  state:"available"|"partial"|"empty"|"declared-empty"|"unknown";
+  state:"available"|"partial"|"empty"|"declared-empty"|"unknown"|"missing";
   isSpecials:boolean;
   episodes:EpisodeAvailability[];
 };
@@ -261,6 +261,25 @@ export async function getSeriesAvailability(
         episodes:normalizedEpisodes.map((ep:any)=>({season:sn,episode:Number(ep.episode_number),id:Number(ep?.id)||undefined,name:String(ep?.name||"حلقة "+ep.episode_number),airDate:ep?.air_date||undefined,available:null,sourceCount:0})),
       });
     }
+
+    const announcedMainSeasons=new Set(seasonStates.filter(s=>!s.isSpecials).map(s=>s.seasonNumber));
+    const maxMainSeason=Math.max(0,...announcedMainSeasons);
+    for(let missingSeason=1;missingSeason<=maxMainSeason;missingSeason++){
+      if(announcedMainSeasons.has(missingSeason))continue;
+      seasonStates.push({
+        seasonNumber:missingSeason,
+        name:"الموسم "+missingSeason,
+        declaredEpisodeCount:0,
+        fetchedEpisodeCount:0,
+        checkedEpisodeCount:0,
+        availableEpisodeCount:0,
+        coverage:null,
+        state:"missing",
+        isSpecials:false,
+        episodes:[],
+      });
+    }
+    seasonStates.sort((a,b)=>a.seasonNumber-b.seasonNumber);
 
     const uniqueRefs=new Map<string,{season:number;episode:number}>();
     for(const ep of allEpisodes)uniqueRefs.set(ep.season+":"+ep.episode,{season:ep.season,episode:ep.episode});
