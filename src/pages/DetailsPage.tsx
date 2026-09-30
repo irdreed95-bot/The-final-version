@@ -84,7 +84,7 @@ export default function DetailsPage({kind}:{kind:"movie"|"series"}){
           {checkingAvailability
             ? <p className="hint">جاري فحص كل موسم وكل حلقة بشكل مستقل…</p>
             : availability
-              ? <p className="hint">التوفر المباشر: {overallCoverage==null?"غير محسوب":overallCoverage+"%"} · المتاح {availability.availableEpisodes} من {availability.checkedEpisodes} حلقة مفحوصة · المواسم الأساسية {availability.mainCoverage==null?"—":Math.round(availability.mainCoverage*100)+"%"} · الـSpecials {availability.specialCoverage==null?"—":Math.round(availability.specialCoverage*100)+"%"}</p>
+              ? <p className="hint">التوفر المباشر: {overallCoverage==null?"غير محسوب":overallCoverage+"%"} · المتاح {availability.availableEpisodes} من {availability.checkedEpisodes} حلقة تم التحقق منها · المواسم الأساسية {availability.mainCoverage==null?"—":Math.round(availability.mainCoverage*100)+"%"} · الـSpecials {availability.specialCoverage==null?"—":Math.round(availability.specialCoverage*100)+"%"}</p>
               : <p className="hint">تعذر بناء تقرير توفر الحلقات.</p>}
         </div>
         <select
@@ -98,7 +98,7 @@ export default function DetailsPage({kind}:{kind:"movie"|"series"}){
           disabled={checkingAvailability||displaySeasons.length===0}
         >
           {displaySeasons.map(s=><option key={s.seasonNumber} value={s.seasonNumber}>
-            {s.name} · {s.availableEpisodeCount}/{s.fetchedEpisodeCount} · {seasonStateLabel(s.state)}
+            {s.name} · {s.availableEpisodeCount}/{s.checkedEpisodeCount} · {seasonStateLabel(s.state)}
           </option>)}
         </select>
       </div>
@@ -127,10 +127,10 @@ export default function DetailsPage({kind}:{kind:"movie"|"series"}){
                     {currentSeason.episodes.map((e:any,i:number)=><article key={currentSeason.seasonNumber+":"+e.episode+":"+i} className={episode===e.episode?"selected-episode":""}>
                       <div>
                         <b>{e.episode}. {e.name||("الحلقة "+e.episode)}</b>
-                        <p>{e.available?"متاح للتشغيل المباشر":"غير متاح حالياً من المصادر المهيأة"}</p>
+                        <p>{e.available===true?"متاح للتشغيل المباشر":e.available===false?"غير متاح حالياً من المصادر المهيأة":"لم يكتمل التحقق من هذه الحلقة"}</p>
                       </div>
                       <button
-                        disabled={!e.available}
+                        disabled={e.available!==true}
                         onClick={()=>{
                           setEpisode(e.episode);
                           document.getElementById("watch")?.scrollIntoView({behavior:"smooth"});
