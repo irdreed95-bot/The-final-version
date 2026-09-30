@@ -84,7 +84,7 @@ export default function DetailsPage({kind}:{kind:"movie"|"series"}){
           {checkingAvailability
             ? <p className="hint">جاري فحص كل موسم وكل حلقة بشكل مستقل…</p>
             : availability
-              ? <p className="hint">التوفر المباشر: {overallCoverage==null?"غير محسوب":overallCoverage+"%"} · المتاح {availability.availableEpisodes} من {availability.checkedEpisodes} حلقة بياناتها موجودة</p>
+              ? <p className="hint">التوفر المباشر: {overallCoverage==null?"غير محسوب":overallCoverage+"%"} · المتاح {availability.availableEpisodes} من {availability.checkedEpisodes} حلقة مفحوصة · المواسم الأساسية {availability.mainCoverage==null?"—":Math.round(availability.mainCoverage*100)+"%"} · الـSpecials {availability.specialCoverage==null?"—":Math.round(availability.specialCoverage*100)+"%"}</p>
               : <p className="hint">تعذر بناء تقرير توفر الحلقات.</p>}
         </div>
         <select
