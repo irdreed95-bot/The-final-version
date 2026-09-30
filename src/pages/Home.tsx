@@ -1,7 +1,7 @@
 import {useEffect,useState} from "react";
 import {Link} from "react-router-dom";
 import {Play,Clock3,Heart} from "lucide-react";
-import {Media,popularMovies,popularSeries,trending,filterPlayableMedia} from "../lib/tmdb";
+import {Media,popularMovies,popularSeries,trending} from "../lib/tmdb";
 import MediaRow from "../components/MediaRow";
 
 export default function Home(){
