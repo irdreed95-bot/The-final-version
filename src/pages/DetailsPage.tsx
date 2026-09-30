@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from "react";
 import {Link,useParams} from "react-router-dom";
-import {img,movie,series,watchProviders,getSeriesAvailability,SeriesAvailabilityReport} from "../lib/tmdb";
+import {img,movie,series,watchProviders,getSeriesAvailability,type SeriesAvailabilityReport} from "../lib/tmdb";
 import VideoPlayer from "../components/VideoPlayer";
 
 function seasonStateLabel(state:SeriesAvailabilityReport["seasons"][number]["state"]){
