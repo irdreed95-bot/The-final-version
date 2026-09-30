@@ -126,7 +126,7 @@ export default function DetailsPage({kind}:{kind:"movie"|"series"}){
                 : <div className="episode-grid">
                     {currentSeason.episodes.map((e:any,i:number)=><article key={currentSeason.seasonNumber+":"+e.episode+":"+i} className={episode===e.episode?"selected-episode":""}>
                       <div>
-                        <b>{e.episode}. {data.name||title}</b>
+                        <b>{e.episode}. {e.name||("الحلقة "+e.episode)}</b>
                         <p>{e.available?"متاح للتشغيل المباشر":"غير متاح حالياً من المصادر المهيأة"}</p>
                       </div>
                       <button
