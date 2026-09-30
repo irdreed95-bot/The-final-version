@@ -43,6 +43,9 @@ const getPlaybackApi=()=>((import.meta.env.VITE_PLAYBACK_API_URL as string|undef
 export type EpisodeAvailability={
   season:number;
   episode:number;
+  id?:number;
+  name?:string;
+  airDate?:string;
   available:boolean;
   sourceCount:number;
 };
@@ -249,7 +252,7 @@ export async function getSeriesAvailability(
         coverage:null,
         state,
         isSpecials,
-        episodes:normalizedEpisodes.map((ep:any)=>({season:sn,episode:Number(ep.episode_number),available:false,sourceCount:0})),
+        episodes:normalizedEpisodes.map((ep:any)=>({season:sn,episode:Number(ep.episode_number),id:Number(ep?.id)||undefined,name:String(ep?.name||"حلقة "+ep.episode_number),airDate:ep?.air_date||undefined,available:false,sourceCount:0})),
       });
     }
 
@@ -286,7 +289,7 @@ export async function getSeriesAvailability(
     }
 
     for(const seasonReport of seasonStates){
-      const updated=seasonReport.episodes.map(ep=>availabilityMap.get(seasonReport.seasonNumber+":"+ep.episode)||ep);
+      const updated=seasonReport.episodes.map(ep=>{const status=availabilityMap.get(seasonReport.seasonNumber+":"+ep.episode);return status?{...ep,...status}:ep;});
       const available=updated.filter(ep=>ep.available).length;
       seasonReport.episodes=updated;
       seasonReport.availableEpisodeCount=available;
