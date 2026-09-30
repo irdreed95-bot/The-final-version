@@ -1,3 +1,4 @@
+import {isDirectPlaybackAvailable,getPlaybackSources} from "./playback";
 const key=import.meta.env.VITE_TMDB_API_KEY as string|undefined;
 const base="https://api.themoviedb.org/3";
 
@@ -38,7 +39,6 @@ const seriesReportCache=new Map<string,{value:SeriesAvailabilityReport;at:number
 const CACHE_MS=10*60*1000;
 const SERIES_BATCH_SIZE=200;
 const SERIES_METADATA_CONCURRENCY=4;
-const getPlaybackApi=()=>((import.meta.env.VITE_PLAYBACK_API_URL as string|undefined)||"").trim().replace(/\/$/,"");
 
 export type EpisodeAvailability={
   season:number;
@@ -86,100 +86,22 @@ async function readPlaybackJson(url:string,init?:RequestInit){
 }
 
 async function checkSeriesSummary(id:number):Promise<boolean>{
-  const api=getPlaybackApi();
-  if(!api)return false;
-  const key="series-summary:"+id;
-  const memory=seriesSummaryCache.get(key);
-  if(memory&&Date.now()-memory.at<CACHE_MS)return memory.value;
-  const cached=sessionStorage.getItem("playable:"+key);
-  if(cached){
-    try{
-      const parsed=JSON.parse(cached);
-      if(typeof parsed?.value==="boolean"&&Date.now()-Number(parsed.at||0)<CACHE_MS){
-        seriesSummaryCache.set(key,{value:parsed.value,at:Number(parsed.at)});
-        return parsed.value;
-      }
-    }catch{}
-    sessionStorage.removeItem("playable:"+key);
-  }
-  try{
-    const endpoint=api.endsWith("/resolve")?api.replace(/\/resolve$/,""):api;
-    const url=new URL(endpoint+"/resolve/series-summary");
-    url.searchParams.set("tmdbId",String(id));
-    url.searchParams.set("type","tv");
-    const {response,data}=await readPlaybackJson(url.toString());
-    const value=Boolean(response.ok&&data?.ok&&data?.hasPlayable);
-    const at=Date.now();
-    seriesSummaryCache.set(key,{value,at});
-    sessionStorage.setItem("playable:"+key,JSON.stringify({value,at}));
-    return value;
-  }catch{
-    seriesSummaryCache.set(key,{value:false,at:Date.now()});
-    return false;
-  }
+ const key="series-summary:"+id; const memory=seriesSummaryCache.get(key); if(memory&&Date.now()-memory.at<CACHE_MS)return memory.value;
+ try{
+  const details=await series(id); const episodes=Array.isArray(details?.seasons)?details.seasons.filter((s:any)=>Number(s?.season_number)>0).map((s:any)=>Number(s.episode_count)||0).reduce((a:number,b:number)=>a+b,0):0;
+  if(!episodes){seriesSummaryCache.set(key,{value:false,at:Date.now()});return false;}
+  const probe=await isDirectPlaybackAvailable({tmdbId:id,type:"tv",season:1,episode:1});
+  seriesSummaryCache.set(key,{value:probe,at:Date.now()}); return probe;
+ }catch{seriesSummaryCache.set(key,{value:false,at:Date.now()});return false;}
 }
 
 export async function isPlayable(id:number,type:"movie"|"tv",seasonNumber=1,episodeNumber=1):Promise<boolean>{
-  const api=getPlaybackApi(); if(!api)return false;
-  if(type==="tv")return checkSeriesEpisodePlayable(id,seasonNumber,episodeNumber);
-  const key=type+":"+id+":"+seasonNumber+":"+episodeNumber;
-  const memory=playbackCache.get(key);
-  if(memory&&Date.now()-memory.at<CACHE_MS)return memory.value;
-  const cached=sessionStorage.getItem("playable:"+key);
-  if(cached){
-    try{
-      const parsed=JSON.parse(cached);
-      if(typeof parsed?.value==="boolean"&&Date.now()-Number(parsed.at||0)<CACHE_MS){
-        playbackCache.set(key,{value:parsed.value,at:Number(parsed.at)});
-        return parsed.value;
-      }
-    }catch{}
-    sessionStorage.removeItem("playable:"+key);
-  }
-  try{
-    const url=new URL(api.endsWith("/resolve")?api:api+"/resolve");
-    url.searchParams.set("tmdbId",String(id));
-    url.searchParams.set("type",type);
-    url.searchParams.set("season",String(seasonNumber));
-    url.searchParams.set("episode",String(episodeNumber));
-    const {response,data}=await readPlaybackJson(url.toString());
-    const playable=Boolean(response.ok&&data?.ok&&Array.isArray(data?.sources)&&data.sources.some((s:any)=>{
-      if(typeof s?.url!=="string"||s?.isEmbed)return false;
-      const kind=String(s?.kind||"").toLowerCase();
-      return kind==="hls"||kind==="mp4"||/\.m3u8(?:$|[?#])/i.test(s.url)||/\.mp4(?:$|[?#])/i.test(s.url);
-    }));
-    const at=Date.now();
-    playbackCache.set(key,{value:playable,at});
-    sessionStorage.setItem("playable:"+key,JSON.stringify({value:playable,at}));
-    return playable;
-  }catch{
-    playbackCache.set(key,{value:false,at:Date.now()});
-    return false;
-  }
+ const key=type+":"+id+":"+seasonNumber+":"+episodeNumber; const memory=playbackCache.get(key); if(memory&&Date.now()-memory.at<CACHE_MS)return memory.value;
+ try{const value=await isDirectPlaybackAvailable({tmdbId:id,type,season:seasonNumber,episode:episodeNumber}); const at=Date.now(); playbackCache.set(key,{value,at}); return value;}
+ catch{playbackCache.set(key,{value:false,at:Date.now()});return false;}
 }
 
-async function checkSeriesEpisodePlayable(id:number,seasonNumber:number,episodeNumber:number):Promise<boolean>{
-  const api=getPlaybackApi();
-  if(!api)return false;
-  const key="episode:"+id+":"+seasonNumber+":"+episodeNumber;
-  const memory=playbackCache.get(key);
-  if(memory&&Date.now()-memory.at<CACHE_MS)return memory.value;
-  try{
-    const endpoint=api.endsWith("/resolve")?api:api+"/resolve";
-    const url=endpoint.replace(/\/$/,"");
-    const {response,data}=await readPlaybackJson(url+"?tmdbId="+encodeURIComponent(String(id))+"&type=tv&season="+encodeURIComponent(String(seasonNumber))+"&episode="+encodeURIComponent(String(episodeNumber)));
-    const value=Boolean(response.ok&&data?.ok&&Array.isArray(data?.sources)&&data.sources.some((s:any)=>{
-      if(typeof s?.url!=="string"||s?.isEmbed)return false;
-      const kind=String(s?.kind||"").toLowerCase();
-      return kind==="hls"||kind==="mp4"||/\.m3u8(?:$|[?#])/i.test(s.url)||/\.mp4(?:$|[?#])/i.test(s.url);
-    }));
-    playbackCache.set(key,{value,at:Date.now()});
-    return value;
-  }catch{
-    playbackCache.set(key,{value:false,at:Date.now()});
-    return false;
-  }
-}
+async function checkSeriesEpisodePlayable(id:number,seasonNumber:number,episodeNumber:number):Promise<boolean>{return isPlayable(id,"tv",seasonNumber,episodeNumber);}
 
 async function fetchSeasonMetadata(id:number,seasonNumber:number){
   try{
@@ -285,32 +207,11 @@ export async function getSeriesAvailability(
     for(const ep of allEpisodes)uniqueRefs.set(ep.season+":"+ep.episode,{season:ep.season,episode:ep.episode});
     const refs=Array.from(uniqueRefs.values());
 
-    const api=getPlaybackApi();
     const availabilityMap=new Map<string,EpisodeAvailability>();
-    if(api&&refs.length){
-      const endpoint=(api.endsWith("/resolve")?api.replace(/\/resolve$/,""):api).replace(/\/$/,"");
-      for(let offset=0;offset<refs.length;offset+=SERIES_BATCH_SIZE){
-        const batch=refs.slice(offset,offset+SERIES_BATCH_SIZE);
-        try{
-          const {response,data}=await readPlaybackJson(endpoint+"/resolve/series",{
-            method:"POST",
-            headers:{"content-type":"application/json"},
-            body:JSON.stringify({tmdbId:id,episodes:batch}),
-          });
-          if(!response.ok||!data?.ok||!Array.isArray(data?.episodes))continue;
-          for(const item of data.episodes){
-            const seasonNumber=Number(item?.season);
-            const episodeNumber=Number(item?.episode);
-            if(!Number.isInteger(seasonNumber)||!Number.isFinite(episodeNumber))continue;
-            availabilityMap.set(seasonNumber+":"+episodeNumber,{
-              season:seasonNumber,
-              episode:episodeNumber,
-              available:Boolean(item?.available),
-              sourceCount:Math.max(0,Number(item?.sourceCount)||0),
-            });
-          }
-        }catch{}
-      }
+    if(refs.length){
+      const cursor={value:0};
+      const worker=async()=>{while(true){const index=cursor.value++;if(index>=refs.length)return;const ref=refs[index];const available=await checkSeriesEpisodePlayable(id,ref.season,ref.episode);availabilityMap.set(ref.season+":"+ref.episode,{season:ref.season,episode:ref.episode,available,sourceCount:available?1:0});}};
+      await Promise.all(Array.from({length:Math.min(6,refs.length)},()=>worker()));
     }
 
     for(const seasonReport of seasonStates){
