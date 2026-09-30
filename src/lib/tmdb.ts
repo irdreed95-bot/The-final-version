@@ -227,7 +227,7 @@ export async function getSeriesAvailability(
       const normalizedEpisodes:any[]=[];
       for(const ep of episodes){
         const episodeNumber=Number(ep?.episode_number);
-        if(!Number.isInteger(episodeNumber)||episodeNumber<0)continue;
+        if(!Number.isFinite(episodeNumber)||episodeNumber<0)continue;
         const identity=ep?.id!=null?"id:"+String(ep.id):"coord:"+sn+":"+episodeNumber+":"+String(ep?.air_date||"")+":"+String(ep?.name||"");
         if(uniqueEpisodeIds.has(identity))continue;
         uniqueEpisodeIds.add(identity);
