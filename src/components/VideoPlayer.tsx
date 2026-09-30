@@ -20,7 +20,7 @@ export default function VideoPlayer({tmdbId,type,season=1,episode=1,poster,title
  },[tmdbId,type,season,episode]);
  const currentSource=sources[selected],src=currentSource?.url||"",playbackSrc=currentSource?.proxiedUrl||src;
  useEffect(()=>{setPlayerError("");const v=videoRef.current;if(!v||!playbackSrc)return;let hlsInstance:Hls|undefined;const savedTime=Number(localStorage.getItem(storageKey)||0);
-  const handleLoadedMetadata=()=>{if(savedTime>10&&Number.isFinite(v.duration)&&savedTime<v.duration-20)v.currentTime=savedTime};const handleTimeUpdate=()=>{if(Number.isFinite(v.currentTime)&&v.currentTime>0)localStorage.setItem(storageKey,String(v.currentTime));;
+  const handleLoadedMetadata=()=>{if(savedTime>10&&Number.isFinite(v.duration)&&savedTime<v.duration-20)v.currentTime=savedTime};const handleTimeUpdate=()=>{if(Number.isFinite(v.currentTime)&&v.currentTime>0)localStorage.setItem(storageKey,String(v.currentTime));};
   v.addEventListener("loadedmetadata",handleLoadedMetadata);v.addEventListener("timeupdate",handleTimeUpdate);
   if(currentSource?.kind==="hls"){if(Hls.isSupported()){hlsInstance=new Hls({enableWorker:true});hlsInstance.loadSource(playbackSrc);hlsInstance.attachMedia(v);hlsInstance.on(Hls.Events.ERROR,(_event,data)=>{if(data?.fatal){setPlayerError("تعذر تشغيل مصدر HLS الحالي.");hlsInstance?.destroy();}})}else if(v.canPlayType("application/vnd.apple.mpegurl"))v.src=playbackSrc;else setPlayerError("هذا المتصفح لا يدعم تشغيل HLS.");}
   else{v.src=playbackSrc;v.onerror=()=>setPlayerError("تعذر تشغيل ملف MP4 الحالي.");}
