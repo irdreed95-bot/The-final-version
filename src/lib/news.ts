@@ -1,10 +1,4 @@
-const API=(import.meta.env.VITE_PLAYBACK_API_URL as string|undefined)?.trim().replace(/\/$/,'');
-
-export type NewsItem={id:string;title:string;link:string;description:string;publishedAt:string;source:string;image?:string};
-
-export async function fetchNews(category='world'){
-  if(!API) throw new Error('VITE_PLAYBACK_API_URL is not configured');
-  const r=await fetch(API+'/news/real?category='+encodeURIComponent(category),{headers:{accept:'application/json'}});
-  if(!r.ok) throw new Error('NEWS_REQUEST_FAILED');
-  return r.json() as Promise<{category:string;updatedAt:string;count:number;items:NewsItem[]}>;
-}
+export type NewsChannel={name:string,url:string,logo?:string,language:"ar"|"en"|"es"};
+const lists=[["ar",import.meta.env.VITE_NEWS_PLAYLIST_AR],["en",import.meta.env.VITE_NEWS_PLAYLIST_EN],["es",import.meta.env.VITE_NEWS_PLAYLIST_ES]] as const;
+function parse(text:string,language:"ar"|"en"|"es"){const lines=text.split(/\r?\n/).map(x=>x.trim());const out:NewsChannel[]=[];for(let i=0;i<lines.length;i++){const l=lines[i];if(!l.startsWith("#EXTINF"))continue;const name=(l.split(",").slice(1).join(",")||"News").trim();const logo=l.match(/tvg-logo="([^"]*)"/i)?.[1];const url=lines.slice(i+1).find(x=>/^https?:\/\//i.test(x));if(url)out.push({name,url,logo,language});}return out;}
+export async function getNewsChannels(){const all:NewsChannel[]=[];for(const [lang,url] of lists){if(!url)continue;try{const r=await fetch(url);if(r.ok)all.push(...parse(await r.text(),lang));}catch{}}const seen=new Set<string>();return all.filter(x=>!seen.has(x.url)&&seen.add(x.url));}

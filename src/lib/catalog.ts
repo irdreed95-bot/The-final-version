@@ -1,0 +1,8 @@
+export type Media={id:number;title:string;poster:string;backdrop:string;type:"movie"|"tv";year:string;overview:string;rating:number};
+const key=(import.meta.env.VITE_TMDB_API_KEY||"").trim();const base="https://api.themoviedb.org/3";
+const img=(p:string|null,size="w500")=>p?"https://image.tmdb.org/t/p/"+size+p:"";
+async function tmdb(path:string){if(!key)throw new Error("TMDB_API_KEY_MISSING");const r=await fetch(base+path,{headers:{accept:"application/json",Authorization:"Bearer "+key}});if(!r.ok)throw new Error("TMDB_REQUEST_FAILED");return r.json();}
+function map(x:any,type:"movie"|"tv"):Media{return{id:x.id,title:x.title||x.name||"بدون عنوان",poster:img(x.poster_path),backdrop:img(x.backdrop_path,"w1280"),type,year:(x.release_date||x.first_air_date||"").slice(0,4),overview:x.overview||"لا يوجد وصف متاح.",rating:Number(x.vote_average||0)}}
+export async function getHome(){const[m,t]=await Promise.all([tmdb("/trending/movie/week?language=ar"),tmdb("/trending/tv/week?language=ar")]);return{movies:(m.results||[]).map((x:any)=>map(x,"movie")),shows:(t.results||[]).map((x:any)=>map(x,"tv"))};}
+export async function searchMedia(q:string){const d=await tmdb("/search/multi?language=ar&query="+encodeURIComponent(q)+"&include_adult=false");return(d.results||[]).filter((x:any)=>x.media_type==="movie"||x.media_type==="tv").map((x:any)=>map(x,x.media_type));}
+export async function getDetails(id:number,type:"movie"|"tv"){const d=await tmdb("/"+type+"/"+id+"?language=ar");return{...map(d,type),genres:(d.genres||[]).map((g:any)=>g.name),seasons:d.seasons||[]};}

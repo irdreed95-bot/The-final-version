@@ -1,0 +1,1 @@
+import type{Media}from"../lib/catalog";export default function Card({item,onClick}:{item:Media;onClick:()=>void}){return <button className="card" onClick={onClick}><img src={item.poster||"/placeholder.svg"} alt="" loading="lazy"/><div className="card-info"><strong>{item.title}</strong><span>{item.year||"—"} · {item.rating.toFixed(1)}</span></div></button>}
