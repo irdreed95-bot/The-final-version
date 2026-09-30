@@ -8,11 +8,11 @@ const PLAYLISTS=[
 
 function attr(line:string,key:string){const m=line.match(new RegExp(key+'="([^"]*)"','i'));return m?.[1]||undefined}
 function parse(text:string,language:LiveNewsChannel["language"]){
- const lines=text.split(/\\r?\\n/).map(x=>x.trim()).filter(Boolean),out:LiveNewsChannel[]=[];
+ const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),out:LiveNewsChannel[]=[];
  for(let i=0;i<lines.length;i++){
   if(!lines[i].startsWith('#EXTINF'))continue;
   const info=lines[i],url=lines[i+1];
-  if(!url||url.startsWith('#')||!/^https?:\\/\\//i.test(url))continue;
+  if(!url||url.startsWith('#')||!/^https?:\/\//i.test(url))continue;
   const comma=info.indexOf(','),name=(comma>=0?info.slice(comma+1):'').trim();
   if(!name)continue;
   out.push({name,url,language,logo:attr(info,'tvg-logo'),group:attr(info,'group-title')});
